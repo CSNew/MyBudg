@@ -1,0 +1,140 @@
+@model FinanceDashboardViewModel
+@{
+    ViewData["Title"] = "แดชบอร์ดการเงิน";
+}
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert">@error</div>
+}
+@if (TempData["Notice"] is string notice)
+{
+    <div class="notice">@notice</div>
+}
+
+<section class="grid three">
+    <article class="card">
+        <h3>รายรับรวม</h3>
+        <p class="value income">@Model.TotalIncome.ToString("N2") บาท</p>
+    </article>
+    <article class="card">
+        <h3>รายจ่ายรวม</h3>
+        <p class="value expense">@Model.TotalExpense.ToString("N2") บาท</p>
+    </article>
+    <article class="card">
+        <h3>คงเหลือสุทธิ</h3>
+        <p class="value">@Model.Balance.ToString("N2") บาท</p>
+    </article>
+</section>
+
+<section class="grid two">
+    <article class="card">
+        <h3>เพิ่มประเภทงบประมาณ (ถังงบประมาณ)</h3>
+        <form asp-action="SeedDemo" method="post" class="inline-form">
+            @Html.AntiForgeryToken()
+            <button type="submit">โหลดข้อมูลตัวอย่าง (Run Demo)</button>
+        </form>
+        <form asp-action="AddBucket" method="post">
+            @Html.AntiForgeryToken()
+            <input type="text" name="name" placeholder="เช่น ค่าเดินทาง" required />
+            <button type="submit">เพิ่มประเภท</button>
+        </form>
+
+        <ul>
+            @foreach (var bucket in Model.Buckets)
+            {
+                <li>@bucket.Name</li>
+            }
+        </ul>
+    </article>
+
+    <article class="card">
+        <h3>บันทึกรายรับ/รายจ่าย</h3>
+        <form asp-action="AddTransaction" method="post" class="stack">
+            @Html.AntiForgeryToken()
+            <input type="date" name="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+            <input type="text" name="description" placeholder="รายละเอียด" required />
+            <input type="number" step="0.01" min="0.01" name="amount" placeholder="จำนวนเงิน" required />
+            <select name="type">
+                <option value="Income">รายรับ</option>
+                <option value="Expense">รายจ่าย</option>
+            </select>
+            <select name="budgetBucketId">
+                @foreach (var bucket in Model.Buckets)
+                {
+                    <option value="@bucket.Id">@bucket.Name</option>
+                }
+            </select>
+            <button type="submit">บันทึก</button>
+        </form>
+    </article>
+</section>
+
+<section class="grid two">
+    <article class="card">
+        <h3>ข้อมูลรายรับรายจ่ายล่าสุด</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>วันที่</th>
+                <th>รายการ</th>
+                <th>ประเภท</th>
+                <th>จำนวน</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var tx in Model.Transactions)
+            {
+                <tr>
+                    <td>@tx.Date.ToString("yyyy-MM-dd")</td>
+                    <td>@tx.Description</td>
+                    <td>@(tx.Type == TransactionType.Income ? "รายรับ" : "รายจ่าย")</td>
+                    <td>@tx.Amount.ToString("N2")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </article>
+
+    <article class="card">
+        <h3>บันทึกการลงทุน</h3>
+        <form asp-action="AddInvestment" method="post" class="stack">
+            @Html.AntiForgeryToken()
+            <input type="date" name="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+            <input type="text" name="channel" placeholder="ช่องทางลงทุน เช่น หุ้น กองทุน คริปโต" required />
+            <input type="number" step="0.01" min="0" name="cost" placeholder="ต้นทุน" required />
+            <input type="number" step="0.01" min="0" name="currentValue" placeholder="มูลค่าปัจจุบัน" required />
+            <button type="submit">เพิ่มการลงทุน</button>
+        </form>
+
+        <div class="summary">
+            <p>รวมต้นทุน: <strong>@Model.TotalInvestmentCost.ToString("N2")</strong> บาท</p>
+            <p>รวมมูลค่าปัจจุบัน: <strong>@Model.TotalInvestmentValue.ToString("N2")</strong> บาท</p>
+            <p>กำไรรวม: <strong>@Model.TotalInvestmentProfit.ToString("N2")</strong> บาท</p>
+        </div>
+
+        <table>
+            <thead>
+            <tr>
+                <th>วันที่</th>
+                <th>ช่องทาง</th>
+                <th>ต้นทุน</th>
+                <th>มูลค่า</th>
+                <th>กำไร</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var inv in Model.Investments)
+            {
+                <tr>
+                    <td>@inv.Date.ToString("yyyy-MM-dd")</td>
+                    <td>@inv.Channel</td>
+                    <td>@inv.Cost.ToString("N2")</td>
+                    <td>@inv.CurrentValue.ToString("N2")</td>
+                    <td>@inv.Profit.ToString("N2")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </article>
+</section>
