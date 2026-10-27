@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/App_Data/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+.git/
+.github/
+.agents/
+.claude/
+backend/
+frontend/
+docs/
+**/node_modules/

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MyBudg.Business;
@@ -16,16 +17,20 @@ public class FakeUser : ICurrentUser
 /// <summary>DB SQLite ชั่วคราวต่อเทสต์ + DI ครบทุกชั้น</summary>
 public sealed class TestEnv : IDisposable
 {
-    public string DbPath { get; } = Path.Combine(Path.GetTempPath(), $"mybudg-{Guid.NewGuid():N}.db");
+    public string DbPath { get; }
+    public string Key { get; }
     public FakeUser User { get; } = new();
     public ServiceProvider Provider { get; }
 
-    public TestEnv()
+    /// <summary>ส่ง dbPath/key เดิมเข้ามาเพื่อจำลอง "รีสตาร์ตแอป" กับฐานข้อมูลเดิม</summary>
+    public TestEnv(string? dbPath = null, string? key = null)
     {
+        DbPath = dbPath ?? Path.Combine(Path.GetTempPath(), $"mybudg-{Guid.NewGuid():N}.db");
+        Key = key ?? AesGcmDataEncryptor.GenerateKey();
         var services = new ServiceCollection();
         services.AddSingleton<ICurrentUser>(User);
         services.AddMyBudgData($"Data Source={DbPath};Pooling=False",
-            new EncryptionOptions { Keys = { ["k1"] = AesGcmDataEncryptor.GenerateKey() } });
+            new EncryptionOptions { Keys = { ["k1"] = Key } });
         services.AddMyBudgBusiness();
         Provider = services.BuildServiceProvider();
 
@@ -35,9 +40,12 @@ public sealed class TestEnv : IDisposable
 
     public T Get<T>() where T : notnull => Provider.GetRequiredService<T>();
 
+    public bool KeepDatabase { get; set; }
+
     public void Dispose()
     {
         Provider.Dispose();
+        if (KeepDatabase) return;
         foreach (var f in new[] { DbPath, DbPath + "-wal", DbPath + "-shm" })
             try { File.Delete(f); } catch { /* ignore */ }
     }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using MyBudg.Common;
@@ -6,8 +7,11 @@ using MyBudg.Entity;
 namespace MyBudg.Data;
 
 public class MyBudgDbContext(DbContextOptions<MyBudgDbContext> options, IDataEncryptor encryptor)
-    : IdentityDbContext<ApplicationUser>(options)
+    : IdentityDbContext<ApplicationUser>(options), IDataProtectionKeyContext
 {
+    /// <summary>key ring ของ ASP.NET Data Protection (cookie ล็อกอิน, antiforgery) — เก็บแบบเข้ารหัสด้วยคีย์ของแอป</summary>
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
+
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<FinanceTransaction> Transactions => Set<FinanceTransaction>();
     public DbSet<Investment> Investments => Set<Investment>();
