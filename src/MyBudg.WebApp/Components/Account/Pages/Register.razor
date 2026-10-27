@@ -1,0 +1,92 @@
+@page "/Account/Register"
+@using System.ComponentModel.DataAnnotations
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject ILogger<Register> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>สมัครใช้งาน</PageTitle>
+
+<h1>สมัครใช้งาน</h1>
+
+<EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
+    <DataAnnotationsValidator />
+    @if (identityErrors is not null)
+    {
+        <div class="alert alert-danger" role="alert">
+            @foreach (var e in identityErrors) { <div>@Translate(e)</div> }
+        </div>
+    }
+    <ValidationSummary class="text-danger" role="alert" />
+
+    <label class="field">
+        <span>อีเมล</span>
+        <InputText @bind-Value="Input.Email" class="input" autocomplete="username" aria-required="true" />
+        <ValidationMessage For="() => Input.Email" class="text-danger" />
+    </label>
+    <label class="field">
+        <span>รหัสผ่าน <small class="muted">(อย่างน้อย 12 ตัว มีตัวพิมพ์เล็กและตัวเลข)</small></span>
+        <InputText type="password" @bind-Value="Input.Password" class="input" autocomplete="new-password" aria-required="true" />
+        <ValidationMessage For="() => Input.Password" class="text-danger" />
+    </label>
+    <label class="field">
+        <span>ยืนยันรหัสผ่าน</span>
+        <InputText type="password" @bind-Value="Input.ConfirmPassword" class="input" autocomplete="new-password" aria-required="true" />
+        <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
+    </label>
+    <button type="submit" class="btn btn-primary btn-block">สมัครใช้งาน</button>
+</EditForm>
+
+<p class="center muted">มีบัญชีแล้ว? <a href="Account/Login">เข้าสู่ระบบ</a></p>
+
+@code {
+    private IEnumerable<IdentityError>? identityErrors;
+
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = default!;
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    protected override void OnInitialized() => Input ??= new();
+
+    public async Task RegisterUser(EditContext editContext)
+    {
+        var user = new ApplicationUser { UserName = Input.Email, Email = Input.Email };
+        var result = await UserManager.CreateAsync(user, Input.Password);
+        if (!result.Succeeded)
+        {
+            identityErrors = result.Errors;
+            return;
+        }
+
+        Logger.LogInformation("User created a new account.");
+        await SignInManager.SignInAsync(user, isPersistent: false);
+        RedirectManager.RedirectTo(ReturnUrl);
+    }
+
+    private static string Translate(IdentityError e) => e.Code switch
+    {
+        "DuplicateUserName" or "DuplicateEmail" => "อีเมลนี้ถูกใช้งานแล้ว",
+        "PasswordTooShort" => "รหัสผ่านสั้นเกินไป (อย่างน้อย 12 ตัว)",
+        "PasswordRequiresDigit" => "รหัสผ่านต้องมีตัวเลขอย่างน้อย 1 ตัว",
+        "PasswordRequiresLower" => "รหัสผ่านต้องมีตัวพิมพ์เล็กอย่างน้อย 1 ตัว",
+        "PasswordRequiresUniqueChars" => "รหัสผ่านต้องมีตัวอักษรที่ไม่ซ้ำกันมากกว่านี้",
+        "InvalidEmail" => "รูปแบบอีเมลไม่ถูกต้อง",
+        _ => e.Description
+    };
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "กรุณากรอกอีเมล")]
+        [EmailAddress(ErrorMessage = "รูปแบบอีเมลไม่ถูกต้อง")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "กรุณากรอกรหัสผ่าน")]
+        [StringLength(100, MinimumLength = 12, ErrorMessage = "รหัสผ่านต้องยาว 12-100 ตัวอักษร")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        [DataType(DataType.Password)]
+        [Compare("Password", ErrorMessage = "รหัสผ่านไม่ตรงกัน")]
+        public string ConfirmPassword { get; set; } = "";
+    }
+}

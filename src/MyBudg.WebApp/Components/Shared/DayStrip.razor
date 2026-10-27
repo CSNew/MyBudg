@@ -1,0 +1,27 @@
+@using System.Globalization
+@{
+    var max = Math.Max(1m, Math.Max(DailyExpense.Max(), Allowance ?? 0));
+    string P(decimal v) => Math.Max(v == 0 ? 0 : 4, Math.Round(v / max * 100, 1)).ToString("0.#", CultureInfo.InvariantCulture);
+}
+<div class="daystrip" role="img" aria-label="รายจ่ายแต่ละวันของเดือน">
+    @if (Allowance is > 0)
+    {
+        <div class="daystrip-line" style="bottom:@((Allowance.Value / max * 100).ToString("0.#", CultureInfo.InvariantCulture))%"></div>
+    }
+    @for (var i = 0; i < DailyExpense.Count; i++)
+    {
+        var day = i + 1;
+        var css = TodayDay is { } t ? (day == t ? "today" : day > t ? "future" : "past") : "past";
+        <div class="daystrip-col @css" title="วันที่ @day: @DailyExpense[i].Baht()">
+            <span class="daystrip-bar" style="--h:@(P(DailyExpense[i]))%;--i:@i"></span>
+        </div>
+    }
+</div>
+<div class="daystrip-axis"><span>1</span><span>@DailyExpense.Count</span></div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<decimal> DailyExpense { get; set; } = [];
+    [Parameter] public decimal? Allowance { get; set; }
+    /// <summary>วันที่ของวันนี้ (1-31) ถ้าเป็นเดือนปัจจุบัน</summary>
+    [Parameter] public int? TodayDay { get; set; }
+}

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>mybudg-webapp-3f6b1c0e</UserSecretsId>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MyBudg.Business\MyBudg.Business.csproj" />
+    <ProjectReference Include="..\MyBudg.Data\MyBudg.Data.csproj" />
+    <ProjectReference Include="..\MyBudg.Entity\MyBudg.Entity.csproj" />
+    <ProjectReference Include="..\MyBudg.Common\MyBudg.Common.csproj" />
+  </ItemGroup>
+</Project>
