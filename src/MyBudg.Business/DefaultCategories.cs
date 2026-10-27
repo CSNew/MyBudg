@@ -6,18 +6,18 @@ public static class DefaultCategories
 {
     public static IReadOnlyList<Category> Create() =>
     [
-        Expense("อาหาร", "🍜", "#f97316", SpendingGroup.Need),
-        Expense("เดินทาง", "🚌", "#0ea5e9", SpendingGroup.Need),
-        Expense("ที่พัก", "🏠", "#8b5cf6", SpendingGroup.Need),
-        Expense("บิล/สาธารณูปโภค", "💡", "#eab308", SpendingGroup.Need),
-        Expense("สุขภาพ", "💊", "#ef4444", SpendingGroup.Need),
-        Expense("ช้อปปิง", "🛍️", "#ec4899", SpendingGroup.Want),
-        Expense("บันเทิง", "🎬", "#14b8a6", SpendingGroup.Want),
-        Expense("ออม/ลงทุน", "🐷", "#22c55e", SpendingGroup.Saving),
-        Expense("อื่นๆ", "📦", "#94a3b8", SpendingGroup.Want),
-        Income("เงินเดือน", "💼", "#16a34a"),
-        Income("รายได้เสริม", "✨", "#65a30d"),
-        Income("รายรับอื่นๆ", "🎁", "#0d9488"),
+        Expense("อาหาร", "🍜", "#D98F5C", SpendingGroup.Need),
+        Expense("เดินทาง", "🚌", "#6FA3B5", SpendingGroup.Need),
+        Expense("ที่พัก", "🏠", "#9A86B8", SpendingGroup.Need),
+        Expense("บิล/สาธารณูปโภค", "💡", "#C9A25A", SpendingGroup.Need),
+        Expense("สุขภาพ", "💊", "#C97B72", SpendingGroup.Need),
+        Expense("ช้อปปิง", "🛍️", "#D88C9A", SpendingGroup.Want),
+        Expense("บันเทิง", "🎬", "#7DB3A6", SpendingGroup.Want),
+        Expense("ออม/ลงทุน", "🐷", "#7FA37A", SpendingGroup.Saving),
+        Expense("อื่นๆ", "📦", "#A89F91", SpendingGroup.Want),
+        Income("เงินเดือน", "💼", "#8FA86A"),
+        Income("รายได้เสริม", "✨", "#B5C27A"),
+        Income("รายรับอื่นๆ", "🎁", "#7DB3A6"),
     ];
 
     private static Category Expense(string name, string icon, string color, SpendingGroup group) =>
