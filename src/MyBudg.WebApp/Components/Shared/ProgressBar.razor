@@ -1,0 +1,10 @@
+<div class="progress" role="progressbar" aria-valuenow="@Math.Min(Percent, 100)" aria-valuemin="0" aria-valuemax="100">
+    <div class="progress-bar @Css" style="width:@(Math.Min(Percent, 100).ToString("0", System.Globalization.CultureInfo.InvariantCulture))%"></div>
+</div>
+
+@code {
+    [Parameter] public decimal Percent { get; set; }
+    [Parameter] public BudgetLevel Level { get; set; }
+
+    private string Css => Level switch { BudgetLevel.Over => "bar-over", BudgetLevel.Warning => "bar-warn", _ => "bar-ok" };
+}

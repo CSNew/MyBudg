@@ -1,0 +1,116 @@
+@page "/onboarding"
+@attribute [Authorize]
+@using System.Globalization
+@inject IOnboardingService OnboardingSvc
+@inject ICategoryService Categories
+@inject NavigationManager Nav
+
+<PageTitle>เริ่มต้นใช้งาน - MyBudg</PageTitle>
+
+<div class="stepper" aria-label="ขั้นตอน">
+    @for (var i = 1; i <= 3; i++)
+    {
+        <span class="step @(step == i ? "current" : step > i ? "done" : "")">@i</span>
+    }
+</div>
+
+<section class="block">
+    @if (step == 1)
+    {
+        <h1>ยินดีต้อนรับ 👋</h1>
+        <p class="muted">ตอบแค่ 3 ข้อ แล้วเริ่มบันทึกได้เลย — ไม่ต้องมีความรู้บัญชี</p>
+        <label class="field">
+            <span>รายได้ต่อเดือนประมาณเท่าไหร่? (บาท)</span>
+            <input class="input input-lg" inputmode="decimal" placeholder="เช่น 25000" @bind="incomeText" @bind:event="oninput" />
+        </label>
+        <p class="muted small">ใช้คำนวณคำแนะนำเท่านั้น ข้อมูลถูกเข้ารหัสก่อนเก็บ และแก้ไขภายหลังได้</p>
+        <button class="btn btn-primary btn-block" @onclick="ToStep2">ถัดไป</button>
+    }
+    else if (step == 2)
+    {
+        <h1>เลือกหมวดที่คุณใช้บ่อย</h1>
+        <p class="muted">เอาหมวดที่ไม่ใช้ออกได้ (เพิ่ม/ซ่อนภายหลังได้)</p>
+        <div class="cat-grid">
+            @foreach (var c in categories)
+            {
+                var on = !hidden.Contains(c.Name);
+                <button class="cat @(on ? "selected" : "")" style="--cat:@c.Color" @onclick="() => Toggle(c.Name)" aria-pressed="@on">
+                    <span class="cat-icon" style="--cat:@c.Color"><LineIcon Name="@c.Icon" Size="26" /></span>
+                    <span class="cat-name">@c.Name</span>
+                </button>
+            }
+        </div>
+        <div class="row-2">
+            <button class="btn btn-quiet" @onclick="() => step = 1">ย้อนกลับ</button>
+            <button class="btn btn-primary" @onclick="() => step = 3">ถัดไป</button>
+        </div>
+    }
+    else
+    {
+        <h1>พร้อมแล้ว 🎉</h1>
+        <p class="muted">เริ่มบันทึกรายการแรกด้วยปุ่ม <strong>＋</strong> ได้เลย หรือจะดูตัวอย่างข้อมูลก่อนก็ได้</p>
+        @if (error is not null)
+        {
+            <div class="alert alert-danger" role="alert">@error</div>
+        }
+        <button class="btn btn-primary btn-block btn-lg" disabled="@busy" @onclick="Finish">เริ่มใช้งาน</button>
+        <button class="btn btn-quiet btn-block" disabled="@busy" @onclick="Demo">ลองด้วยข้อมูลตัวอย่าง</button>
+        <button class="btn btn-quiet btn-block" @onclick="() => step = 2">ย้อนกลับ</button>
+    }
+</section>
+
+@code {
+    private int step = 1;
+    private bool busy;
+    private string incomeText = "";
+    private string? error;
+    private IReadOnlyList<Category> categories = [];
+    private readonly HashSet<string> hidden = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (await OnboardingSvc.IsDoneAsync())
+        {
+            Nav.NavigateTo("");
+            return;
+        }
+        categories = await Categories.ListAsync();
+    }
+
+    private void ToStep2()
+    {
+        error = null;
+        if (!string.IsNullOrWhiteSpace(incomeText) && !TryIncome(out _))
+        {
+            error = "กรุณาใส่รายได้เป็นตัวเลข";
+            return;
+        }
+        step = 2;
+    }
+
+    private bool TryIncome(out decimal v) =>
+        decimal.TryParse(incomeText.Replace(",", "").Trim(), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out v);
+
+    private void Toggle(string name)
+    {
+        if (!hidden.Remove(name)) hidden.Add(name);
+    }
+
+    private async Task Finish()
+    {
+        busy = true;
+        TryIncome(out var income);
+        var r = await OnboardingSvc.CompleteAsync(income, hidden);
+        busy = false;
+        if (!r.Succeeded) { error = r.Error; return; }
+        Nav.NavigateTo("");
+    }
+
+    private async Task Demo()
+    {
+        busy = true;
+        await OnboardingSvc.LoadDemoAsync();
+        busy = false;
+        Nav.NavigateTo("");
+    }
+}

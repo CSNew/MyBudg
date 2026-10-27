@@ -1,0 +1,22 @@
+@using System.Globalization
+@{
+    var max = Math.Max(1m, Months.Max(m => Math.Max(m.Income, m.Expense)));
+    string H(decimal v) => Math.Max(v == 0 ? 0 : 3, Math.Round(v / max * 100, 1)).ToString("0.#", CultureInfo.InvariantCulture);
+}
+<div class="months" role="img" aria-label="รายรับและรายจ่ายย้อนหลัง">
+    @foreach (var m in Months)
+    {
+        <div class="month-col" title="@(new DateTime(m.Year, m.Month, 1).ToString("MMMM", Formatting.Thai)): รับ @m.Income.Baht() จ่าย @m.Expense.Baht()">
+            <div class="month-bars">
+                <span class="mbar income" style="height:@(H(m.Income))%"></span>
+                <span class="mbar expense" style="height:@(H(m.Expense))%"></span>
+            </div>
+            <small class="muted">@(new DateTime(m.Year, m.Month, 1).ToString("MMM", Formatting.Thai))</small>
+        </div>
+    }
+</div>
+<div class="keys"><span><i class="key income"></i>รายรับ</span><span><i class="key expense"></i>รายจ่าย</span></div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<MonthTotal> Months { get; set; } = [];
+}

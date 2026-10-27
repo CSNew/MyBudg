@@ -1,0 +1,208 @@
+/* MyBudg — clean card: ไม่มีเส้นขอบ ใช้เงาให้นูนจากพื้นหลัง · พาสเทลโทนเอิร์ธ · ฟอนต์ Prompt */
+:root {
+    --paper: #ece5d9; --card: #fbf8f2; --field: #f2ece1;
+    --text: #3b342c; --muted: #746959; --sub: #4a5640;
+    --band: #bcc9a8; --band-fg: #2c3523; --band-muted: #3c482f; --chip: rgba(255,255,255,.42);
+    --pri: #5b6b45; --pri-fg: #fbf8f2;
+    --gold: #e8b96a; --gold-fg: #3b2a10; --warn: #8f5f12;
+    --green: #4f7a3f; --red: #ae4b3d; --red-fg: #fbf8f2;
+    --track: #e2d9c9; --dots: #d1c6b2; --focus: #4f7ea6;
+    --today: #b4532f; --future: rgba(60,72,47,.40);
+    --sh: 0 1px 2px rgba(92,70,40,.07), 0 8px 24px rgba(92,70,40,.12);
+    --sh-btn: 0 1px 2px rgba(92,70,40,.12), 0 3px 8px rgba(92,70,40,.10);
+    --sh-pri: 0 2px 4px rgba(60,72,40,.28), 0 6px 14px rgba(60,72,40,.22);
+    --sh-in: inset 0 1px 3px rgba(92,70,40,.18);
+    --sh-lg: 0 2px 4px rgba(92,70,40,.10), 0 18px 40px rgba(92,70,40,.22);
+    --sh-gold: 0 8px 20px rgba(214,160,70,.38), 0 2px 4px rgba(92,70,40,.18);
+    --font: "Prompt", "Noto Sans Thai", system-ui, sans-serif;
+    font-family: var(--font);
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --paper: #1d1a16; --card: #2a2621; --field: #211e1a;
+        --text: #efe8dc; --muted: #b9ae9c; --sub: #cfd6c0;
+        --band: #44513a; --band-fg: #f3ecdf; --band-muted: #ccd4bd; --chip: rgba(255,255,255,.10);
+        --pri: #a9bd8c; --pri-fg: #1d2714; --warn: #e3b15a;
+        --green: #a5c98d; --red: #ec9484; --red-fg: #2b1410;
+        --track: #3a352e; --dots: #4b453b; --focus: #e8b96a;
+        --today: #e8b96a; --future: rgba(243,236,223,.35);
+        --sh: inset 0 1px 0 rgba(255,255,255,.05), 0 10px 28px rgba(0,0,0,.45);
+        --sh-btn: inset 0 1px 0 rgba(255,255,255,.06), 0 4px 10px rgba(0,0,0,.38);
+        --sh-pri: inset 0 1px 0 rgba(255,255,255,.18), 0 4px 10px rgba(0,0,0,.4);
+        --sh-in: inset 0 2px 5px rgba(0,0,0,.5);
+        --sh-lg: inset 0 1px 0 rgba(255,255,255,.07), 0 18px 40px rgba(0,0,0,.55);
+        --sh-gold: 0 8px 20px rgba(232,185,106,.25), 0 2px 4px rgba(0,0,0,.4);
+    }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--paper); color: var(--text); font-family: var(--font); font-size: 16px; line-height: 1.65; font-variant-numeric: tabular-nums; }
+h1, h2 { font-weight: 500; line-height: 1.35; }
+h1 { font-size: 1.5rem; margin: 1.1rem 0 .4rem; }
+h2 { font-size: 1.05rem; margin: 0 0 .7rem; }
+h1:focus-visible { outline: none; }
+a { color: inherit; text-underline-offset: 3px; }
+.muted { color: var(--muted); } .small, small { font-size: .85rem; } .center { text-align: center; }
+.neg { color: var(--red); } .pos { color: var(--green); } .warn { color: var(--warn); }
+
+/* ---------- โครงหน้า ---------- */
+.app { max-width: 760px; margin: 0 auto; padding: 0 16px 120px; min-height: 100vh; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 0 8px; gap: 12px; }
+.brand { font-weight: 600; font-size: 1.25rem; text-decoration: none; }
+.topbar-user { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.topbar-user a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 34vw; text-decoration: none; }
+
+/* แท็บ: ร่องจม + พิลล์ลอย */
+.tabs { display: flex; gap: 4px; padding: 4px; border-radius: 99px; background: var(--field); box-shadow: var(--sh-in); overflow-x: auto; scrollbar-width: none; margin: 4px 0 0; }
+.tabs a { flex: 1; text-align: center; padding: 8px 14px; border-radius: 99px; text-decoration: none; color: var(--muted); font-weight: 500; white-space: nowrap; }
+.tabs a:hover { color: var(--text); }
+.tabs a.active { background: var(--card); color: var(--text); font-weight: 600; box-shadow: var(--sh-btn); }
+
+/* ---------- การ์ด ---------- */
+.block, .card { background: var(--card); border-radius: 18px; box-shadow: var(--sh); padding: 20px; margin: 16px 0 0; }
+.block-head, .budget-head, .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.empty { text-align: left; } .empty p { max-width: 46ch; }
+
+/* การ์ดสรุปหลัก */
+.band { background: var(--band); color: var(--band-fg); margin: 14px 0 0; padding: 12px 20px 20px; border-radius: 22px; box-shadow: var(--sh-lg); }
+.band .btn-quiet { color: var(--band-fg); }
+.band .btn-quiet:hover:not(:disabled) { background: var(--chip); }
+.band-lead { margin: 12px 0 0; font-size: 1.05rem; color: var(--band-muted); }
+.band-figure { margin: 0; font-weight: 600; font-size: clamp(3rem, 15vw, 4.4rem); line-height: 1.15; letter-spacing: -.5px; }
+.band-figure small { font-size: 1.05rem; font-weight: 400; color: var(--band-muted); letter-spacing: 0; }
+.band-figure.negative { color: var(--red); }
+.band-sub { margin: 4px 0 16px; color: var(--band-muted); max-width: 46ch; }
+.band-totals { display: flex; gap: 12px; margin: 20px 0 0; }
+.band-totals > div { flex: 1; padding: 10px 16px; border-radius: 14px; background: var(--chip); }
+.band-totals dt { font-size: .85rem; color: var(--band-muted); } .band-totals dd { margin: 0; font-weight: 600; font-size: 1.1rem; }
+
+.daystrip { position: relative; display: flex; align-items: flex-end; gap: 3px; height: 76px; }
+.daystrip-col { flex: 1; height: 100%; display: flex; align-items: flex-end; }
+.daystrip-bar { display: block; width: 100%; height: var(--h); min-height: 2px; border-radius: 2px 2px 0 0; background: var(--band-fg); opacity: .85;
+    transform-origin: bottom; animation: grow .6s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--i) * 12ms); }
+.daystrip-col.future .daystrip-bar { background: transparent; border: 1px dashed var(--future); border-bottom: 0; height: 14px; opacity: 1; animation: none; }
+.daystrip-col.today .daystrip-bar { background: var(--today); opacity: 1; min-height: 6px; }
+.daystrip-line { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--sub); opacity: .9; pointer-events: none; z-index: 1; }
+.daystrip-axis { display: flex; justify-content: space-between; font-size: .75rem; color: var(--band-muted); margin-top: 2px; }
+@keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+.monthnav { display: flex; align-items: center; justify-content: space-between; }
+.monthnav-label { font-weight: 500; font-size: 1.05rem; }
+
+.stat-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.stat { flex: 1; min-width: 130px; padding: 10px 16px; border-radius: 14px; background: var(--field); box-shadow: var(--sh-in); }
+.stat small { display: block; color: var(--muted); } .stat strong { font-size: 1.1rem; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
+
+/* ---------- ปุ่ม / ฟอร์ม ---------- */
+.btn { font: inherit; font-weight: 500; border: 0; border-radius: 12px; padding: 9px 18px; cursor: pointer; background: var(--card); color: var(--text); box-shadow: var(--sh-btn); text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn:hover:not(:disabled) { filter: brightness(.98); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn-primary { background: var(--pri); color: var(--pri-fg); font-weight: 600; box-shadow: var(--sh-pri); }
+.btn-danger { background: var(--red); color: var(--red-fg); }
+.btn-quiet { background: transparent; box-shadow: none; color: var(--muted); }
+.btn-quiet:hover:not(:disabled) { background: var(--field); color: var(--text); filter: none; }
+.btn-sm { padding: 3px 12px; font-size: .85rem; border-radius: 10px; } .btn-lg { padding: 13px 18px; font-size: 1.1rem; }
+.btn-block { width: 100%; margin-top: 10px; } .btn-icon { width: 40px; height: 40px; padding: 0; font-size: 1.5rem; line-height: 1; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.field { display: block; margin-bottom: 12px; } .field > span { display: block; font-size: .9rem; margin-bottom: 4px; font-weight: 500; }
+.field-label { font-size: .9rem; margin: 14px 0 6px; font-weight: 500; }
+.input { width: 100%; font: inherit; padding: 10px 14px; border-radius: 12px; border: 0; background: var(--field); color: var(--text); box-shadow: var(--sh-in); }
+.input::placeholder { color: var(--muted); opacity: .8; }
+.input:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+.input-sm { padding: 6px 12px; font-size: .9rem; } .input-lg { font-size: 1.5rem; padding: 12px 14px; font-weight: 500; }
+.check { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+.row-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0 14px; }
+.inline-form { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+.toolbar { display: flex; gap: 10px; margin: 12px 0 0; } .toolbar .input { flex: 1; }
+.alert { padding: 12px 16px; border-radius: 14px; margin: 10px 0; box-shadow: var(--sh-btn); background: var(--card); }
+.alert-danger { background: color-mix(in srgb, var(--red) 14%, var(--card)); color: var(--text); }
+.alert-success { background: color-mix(in srgb, var(--green) 16%, var(--card)); color: var(--text); }
+.text-danger, .validation-message { color: var(--red); font-size: .85rem; }
+
+/* ---------- แถบสัดส่วน / อันดับ ---------- */
+.ribbon { display: flex; height: 18px; border-radius: 6px; overflow: hidden; gap: 3px; margin-bottom: 12px; }
+.ribbon span { display: block; min-width: 3px; }
+.ranklist { list-style: none; margin: 0; padding: 0; }
+.ranklist li, .legend li { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; }
+.swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; align-self: center; }
+.rank-val { font-weight: 500; white-space: nowrap; } .rank-val small { margin-left: .5em; font-weight: 400; }
+.leader { flex: 1; border-bottom: 2px dotted var(--dots); transform: translateY(-4px); min-width: 12px; }
+.budget-input { width: 9.5rem; flex: none; text-align: right; }
+
+.months { display: flex; align-items: flex-end; gap: 8px; height: 132px; }
+.month-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+.month-bars { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 4px; }
+.mbar { width: 38%; max-width: 22px; border-radius: 4px 4px 0 0; min-height: 0; }
+.mbar.income { background: var(--green); } .mbar.expense { background: var(--text); opacity: .8; }
+.keys { display: flex; gap: 16px; margin-top: 8px; font-size: .85rem; color: var(--muted); }
+.key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; } .key.income { background: var(--green); } .key.expense { background: var(--text); opacity: .8; }
+
+.progress { height: 10px; border-radius: 99px; background: var(--track); box-shadow: var(--sh-in); overflow: hidden; margin: 6px 0; }
+.progress-bar { height: 100%; border-radius: 99px; transition: width .3s; }
+.bar-ok { background: var(--green); } .bar-warn { background: var(--gold); } .bar-over { background: var(--red); }
+.budget-row, .goal, .inv { padding: 10px 0 12px; }
+.goal, .inv { margin-top: 8px; padding: 14px 16px; border-radius: 14px; background: var(--field); box-shadow: var(--sh-in); }
+.add-goal { margin-top: 16px; } .add-goal summary { cursor: pointer; font-weight: 600; margin-bottom: 10px; }
+.big { font-size: 1.1rem; }
+
+/* ---------- รายการแบบสมุดบัญชี ---------- */
+.ledger { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.tx { display: flex; gap: 12px; }
+.lineicon { flex: none; display: block; }
+.with-icon { display: inline-flex; align-items: center; gap: 8px; }
+.with-icon .lineicon { color: var(--muted); }
+.tx-icon { flex: none; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: color-mix(in srgb, var(--tint) 30%, var(--card)); color: color-mix(in srgb, var(--tint) 45%, var(--text)); }
+.tx-body { flex: 1; min-width: 0; }
+.tx-line { display: flex; align-items: baseline; gap: 8px; }
+.tx-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; max-width: 62%; }
+.tx-amount { white-space: nowrap; font-weight: 600; } .tx-amount.income { color: var(--green); }
+.tx-actions { display: flex; gap: 4px; margin-top: 2px; }
+
+/* ---------- ปุ่มจดรายการ ---------- */
+.dock { position: fixed; left: 0; right: 0; bottom: 0; padding: 28px 16px calc(14px + env(safe-area-inset-bottom)); display: flex; justify-content: center; z-index: 20; pointer-events: none;
+    background: linear-gradient(to top, var(--paper) 55%, transparent); }
+.dock-btn { pointer-events: auto; width: min(100%, 520px); font: inherit; font-weight: 500; font-size: 1.15rem; padding: 13px 20px; border: 0; border-radius: 14px; background: var(--gold); color: var(--gold-fg); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: var(--sh-gold); }
+.dock-btn:hover { filter: brightness(1.04); }
+.dock-btn:active { transform: translateY(1px); }
+.dock-plus { font-size: 1.5rem; line-height: 1; }
+
+/* ---------- แผ่นกรอกรายการ ---------- */
+.sheet-backdrop { position: fixed; inset: 0; background: rgba(40,30,18,.5); z-index: 40; }
+.sheet { position: fixed; z-index: 50; left: 50%; bottom: 0; transform: translateX(-50%); width: min(100%, 560px); max-height: 94vh; overflow-y: auto; background: var(--card); border-radius: 24px 24px 0 0; padding: 10px 20px calc(18px + env(safe-area-inset-bottom)); box-shadow: var(--sh-lg); animation: rise .22s ease-out; }
+@keyframes rise { from { transform: translate(-50%, 24px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+.sheet-handle { width: 44px; height: 4px; border-radius: 4px; background: var(--track); margin: 4px auto 8px; }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; } .sheet-head h2 { margin: 0; }
+.segmented { display: grid; grid-template-columns: 1fr 1fr; padding: 4px; gap: 4px; border-radius: 14px; background: var(--field); box-shadow: var(--sh-in); margin: 10px 0; }
+.segmented button { font: inherit; border: 0; border-radius: 10px; background: transparent; padding: 9px; cursor: pointer; color: var(--muted); }
+.segmented button.active { background: var(--pri); color: var(--pri-fg); font-weight: 600; box-shadow: var(--sh-pri); }
+.amount-box { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin: 14px 0 8px; padding: 6px 16px 8px; border-radius: 16px; background: var(--field); box-shadow: var(--sh-in); }
+.amount-box:focus-within { outline: 3px solid var(--focus); outline-offset: 1px; }
+.amount-prefix { font-size: 2rem; color: var(--muted); }
+.amount-input { width: 70%; font: inherit; font-size: 3rem; font-weight: 500; text-align: center; border: 0; background: transparent; color: var(--text); outline: none; }
+.amount-input:focus-visible { outline: none; }
+.cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(98px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.cat { font: inherit; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; border-radius: 14px; border: 0; background: var(--card); color: var(--text); cursor: pointer; box-shadow: var(--sh-btn); }
+.cat.selected { background: var(--field); box-shadow: var(--sh-in), inset 0 -4px 0 var(--cat); font-weight: 600; }
+.cat-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: color-mix(in srgb, var(--cat) 30%, var(--card)); color: color-mix(in srgb, var(--cat) 45%, var(--text)); } .cat-name { font-size: .8rem; text-align: center; line-height: 1.3; }
+
+/* ---------- เริ่มต้นใช้งาน / บัญชี ---------- */
+.stepper { display: flex; gap: 8px; margin: 16px 0 0; }
+.step { flex: 1; height: 6px; border-radius: 99px; background: var(--track); box-shadow: var(--sh-in); font-size: 0; }
+.step.current, .step.done { background: var(--pri); box-shadow: none; }
+.auth-page { max-width: 440px; margin: 0 auto; padding: 0 16px 40px; }
+.brand-lg { display: block; font-size: 2.4rem; margin-top: 9vh; }
+.auth-tagline { color: var(--muted); margin: 4px 0 0; }
+.auth-card { margin-top: 22px; padding: 24px; }
+
+.legend { list-style: none; padding: 0; margin: 0; }
+#blazor-error-ui { background: #f6e7b8; color: #5b4310; bottom: 0; display: none; left: 0; padding: .6rem 1.25rem; position: fixed; width: 100%; z-index: 1000; }
+#blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: .75rem; top: .5rem; }
+.blazor-error-boundary { background: #8f3b30; padding: 1rem; color: #fff; }
+
+@media (min-width: 800px) { .band { padding: 14px 28px 24px; } .block, .card { padding: 24px; } }
+@media (prefers-reduced-motion: reduce) {
+    .daystrip-bar, .sheet { animation: none; }
+    .progress-bar { transition: none; }
+}

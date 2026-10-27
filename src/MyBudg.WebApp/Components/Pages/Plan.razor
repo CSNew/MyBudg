@@ -1,0 +1,196 @@
+@page "/plan"
+@attribute [Authorize]
+@using System.Globalization
+@implements IDisposable
+@inject IBudgetPlanService PlanService
+@inject ICategoryService Categories
+@inject AppState State
+
+<PageTitle>วางแผน - MyBudg</PageTitle>
+
+<h1>วางแผนการเงิน</h1>
+
+@if (plan is null)
+{
+    <p class="muted center">กำลังโหลด...</p>
+}
+else
+{
+    @if (message is not null)
+    {
+        <div class="alert alert-danger" role="alert">@message</div>
+    }
+
+    <section class="block">
+        <h2>งบรายเดือนแต่ละหมวด</h2>
+        <p class="muted small">ตั้งวงเงินที่อยากใช้ต่อเดือน แล้วเราจะเตือนเมื่อใกล้เต็ม</p>
+        @foreach (var c in expenseCats)
+        {
+            var b = plan.Budgets.FirstOrDefault(x => x.Category.Id == c.Id);
+            <div class="budget-row">
+                <div class="budget-head">
+                    <span class="with-icon"><LineIcon Name="@c.Icon" Size="20" />@c.Name</span>
+                    <input class="input input-sm budget-input" type="text" inputmode="decimal" placeholder="วงเงิน (บาท)" aria-label="วงเงิน @c.Name"
+                           value="@(c.MonthlyBudget?.ToString("0.##", CultureInfo.InvariantCulture))"
+                           @onchange="e => SaveBudget(c.Id, e.Value?.ToString())" />
+                </div>
+                @if (b is not null)
+                {
+                    <ProgressBar Percent="b.Percent" Level="b.Level" />
+                    <div class="budget-head">
+                        <small class="@(b.Level == BudgetLevel.Over ? "neg" : "muted")">ใช้แล้ว @b.Spent.BahtShort() จาก @b.Budget.BahtShort()</small>
+                        @if (b.Level == BudgetLevel.Over)
+                        {
+                            <small class="neg">เกินงบ @((b.Spent - b.Budget).Baht())</small>
+                        }
+                        else if (b.Level == BudgetLevel.Warning)
+                        {
+                            <small class="warn">ใกล้เต็มงบแล้ว (@b.Percent%)</small>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="block">
+        <h2>กฎ 50/30/20</h2>
+        <p class="muted small">แนวทางง่ายๆ: ใช้จำเป็น 50% · อยากได้ 30% · ออมและลงทุน 20% ของรายรับ
+            @if (plan.MonthlyIncome == 0) { <span> (ยังไม่มีรายรับเดือนนี้ จึงยังคำนวณไม่ได้)</span> }
+        </p>
+        @foreach (var r in plan.Rule503020)
+        {
+            var ok = r.Label == "ออม/ลงทุน" ? r.ActualPercent >= r.TargetPercent : r.ActualPercent <= r.TargetPercent;
+            <div class="budget-row">
+                <div class="budget-head">
+                    <span>@r.Label</span>
+                    <span class="@(ok ? "muted" : "warn")">@r.ActualPercent% <small>(เป้า @r.TargetPercent%)</small> · @r.Amount.BahtShort()</span>
+                </div>
+                <ProgressBar Percent="@(r.TargetPercent == 0 ? 0 : r.ActualPercent / r.TargetPercent * 100)" Level="@(ok ? BudgetLevel.Ok : BudgetLevel.Warning)" />
+            </div>
+        }
+    </section>
+
+    <section class="block">
+        <h2>เงินสำรองฉุกเฉิน</h2>
+        @if (plan.EmergencyMonths is null)
+        {
+            <p class="muted">บันทึกรายจ่ายสักพักก่อน แล้วเราจะบอกว่าเงินออมของคุณพอใช้กี่เดือน</p>
+        }
+        else
+        {
+            <p class="big">เงินออมในเป้าหมายพอใช้ประมาณ <strong class="@(plan.EmergencyMonths >= 3 ? "pos" : "warn")">@plan.EmergencyMonths.Value.ToString("0.#") เดือน</strong></p>
+            <p class="muted small">แนะนำให้มีอย่างน้อย 3–6 เท่าของรายจ่ายต่อเดือน</p>
+        }
+    </section>
+
+    <section class="block">
+        <h2>เป้าหมายการออม</h2>
+        @if (plan.Goals.Count == 0)
+        {
+            <p class="muted">ยังไม่มีเป้าหมาย ลองตั้งเป้าหมายแรก เช่น "เที่ยวต่างประเทศ" หรือ "ดาวน์รถ"</p>
+        }
+        @foreach (var g in plan.Goals)
+        {
+            <div class="goal">
+                <div class="budget-head">
+                    <strong>@g.Goal.Name</strong>
+                    <button class="btn btn-quiet btn-sm" aria-label="ลบเป้าหมาย @g.Goal.Name" @onclick="() => DeleteGoal(g.Goal.Id)">ลบ</button>
+                </div>
+                <ProgressBar Percent="g.Percent" Level="BudgetLevel.Ok" />
+                <div class="budget-head">
+                    <small>@g.Goal.CurrentAmount.BahtShort() / @g.Goal.TargetAmount.BahtShort() (@g.Percent%)</small>
+                    @if (g.MonthlyNeeded is { } m)
+                    {
+                        <small class="muted">ต้องออมเดือนละ <strong>@m.BahtShort()</strong> (อีก @g.MonthsLeft เดือน)</small>
+                    }
+                    else if (g.Percent >= 100)
+                    {
+                        <small class="pos">ครบเป้าแล้ว 🎉</small>
+                    }
+                </div>
+                <div class="inline-form">
+                    <input class="input input-sm" type="text" inputmode="decimal" placeholder="อัปเดตยอดที่ออมได้" aria-label="ยอดที่ออมได้ @g.Goal.Name"
+                           @onchange="e => UpdateGoal(g.Goal.Id, e.Value?.ToString())" />
+                </div>
+            </div>
+        }
+
+        <details class="add-goal" open="@(plan.Goals.Count == 0)">
+            <summary>＋ เพิ่มเป้าหมายใหม่</summary>
+            <div class="row-2">
+                <label class="field"><span>ชื่อเป้าหมาย</span><input class="input" maxlength="@Limits.MaxNameLength" @bind="goalName" /></label>
+                <label class="field"><span>เป้าหมาย (บาท)</span><input class="input" inputmode="decimal" @bind="goalTarget" /></label>
+                <label class="field"><span>มีอยู่แล้ว (บาท)</span><input class="input" inputmode="decimal" @bind="goalCurrent" /></label>
+                <label class="field"><span>อยากได้ภายใน <small class="muted">(ไม่บังคับ)</small></span><input class="input" type="date" @bind="goalDate" @bind:format="yyyy-MM-dd" /></label>
+            </div>
+            <button class="btn btn-primary" @onclick="AddGoal">เพิ่มเป้าหมาย</button>
+        </details>
+    </section>
+}
+
+@code {
+    private BudgetPlan? plan;
+    private IReadOnlyList<Category> expenseCats = [];
+    private string? message;
+    private string goalName = "", goalTarget = "", goalCurrent = "0";
+    private DateTime? goalDate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.DataChanged += OnChanged;
+        await LoadAsync();
+    }
+
+    private void OnChanged() => _ = InvokeAsync(async () => { await LoadAsync(); StateHasChanged(); });
+
+    private async Task LoadAsync()
+    {
+        expenseCats = await Categories.ListAsync(TransactionType.Expense);
+        plan = await PlanService.GetPlanAsync(MonthRange.Current);
+    }
+
+    private static bool TryAmount(string? text, out decimal value) =>
+        decimal.TryParse((text ?? "").Replace(",", "").Trim(), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value);
+
+    private async Task SaveBudget(int categoryId, string? text)
+    {
+        message = null;
+        decimal? value = null;
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            if (!TryAmount(text, out var v)) { message = "กรุณาใส่วงเงินเป็นตัวเลข"; return; }
+            value = v;
+        }
+        var r = await PlanService.SetBudgetAsync(categoryId, value);
+        message = r.Error;
+        await LoadAsync();
+    }
+
+    private async Task AddGoal()
+    {
+        message = null;
+        if (!TryAmount(goalTarget, out var target)) { message = "กรุณาใส่จำนวนเงินเป้าหมายเป็นตัวเลข"; return; }
+        TryAmount(goalCurrent, out var current);
+        var r = await PlanService.AddGoalAsync(new GoalInput(goalName, target, current, goalDate));
+        message = r.Error;
+        if (r.Succeeded) { goalName = ""; goalTarget = ""; goalCurrent = "0"; goalDate = null; }
+        await LoadAsync();
+    }
+
+    private async Task UpdateGoal(int id, string? text)
+    {
+        message = null;
+        if (!TryAmount(text, out var v)) { message = "กรุณาใส่ยอดเป็นตัวเลข"; return; }
+        message = (await PlanService.UpdateGoalAmountAsync(id, v)).Error;
+        await LoadAsync();
+    }
+
+    private async Task DeleteGoal(int id)
+    {
+        await PlanService.DeleteGoalAsync(id);
+        await LoadAsync();
+    }
+
+    public void Dispose() => State.DataChanged -= OnChanged;
+}

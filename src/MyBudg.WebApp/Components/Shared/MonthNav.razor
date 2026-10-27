@@ -1,0 +1,12 @@
+<div class="monthnav">
+    <button class="btn btn-quiet btn-icon" aria-label="เดือนก่อนหน้า" @onclick="() => Move(-1)">‹</button>
+    <strong class="monthnav-label">@Formatting.MonthName(Month.Year, Month.Month)</strong>
+    <button class="btn btn-quiet btn-icon" aria-label="เดือนถัดไป" @onclick="() => Move(1)" disabled="@(Month.AddMonths(1).Start > DateTime.Today)">›</button>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public MonthRange Month { get; set; }
+    [Parameter] public EventCallback<MonthRange> MonthChanged { get; set; }
+
+    private Task Move(int delta) => MonthChanged.InvokeAsync(Month.AddMonths(delta));
+}

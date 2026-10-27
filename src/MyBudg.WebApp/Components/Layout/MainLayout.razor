@@ -1,0 +1,46 @@
+@inherits LayoutComponentBase
+@inject AppState State
+
+<div class="app">
+    <header class="topbar">
+        <a class="brand" href="">MyBudg</a>
+        <AuthorizeView>
+            <Authorized>
+                <div class="topbar-user">
+                    <a href="Account/Manage/ChangePassword" class="muted small" title="เปลี่ยนรหัสผ่าน">@context.User.Identity?.Name</a>
+                    <form action="Account/Logout" method="post">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="returnUrl" value="" />
+                        <button type="submit" class="btn btn-quiet btn-sm">ออกจากระบบ</button>
+                    </form>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </header>
+
+    <AuthorizeView>
+        <nav class="tabs" aria-label="เมนูหลัก">
+            <NavLink href="" Match="NavLinkMatch.All">หน้าแรก</NavLink>
+            <NavLink href="transactions">รายการ</NavLink>
+            <NavLink href="plan">วางแผน</NavLink>
+            <NavLink href="investments">ลงทุน</NavLink>
+        </nav>
+    </AuthorizeView>
+
+    <main class="content">
+        @Body
+    </main>
+
+    <AuthorizeView>
+        <div class="dock">
+            <button class="dock-btn" @onclick="() => State.OpenQuickAdd()"><span class="dock-plus" aria-hidden="true">＋</span>จดรายการ</button>
+        </div>
+        <QuickAdd />
+    </AuthorizeView>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    เกิดข้อผิดพลาดบางอย่าง
+    <a href="." class="reload">โหลดใหม่</a>
+    <span class="dismiss">🗙</span>
+</div>

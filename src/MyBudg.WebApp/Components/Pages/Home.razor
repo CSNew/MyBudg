@@ -1,0 +1,126 @@
+@page "/"
+@attribute [Authorize]
+@implements IDisposable
+@inject IDashboardService Dashboard
+@inject ITransactionService Transactions
+@inject IOnboardingService OnboardingSvc
+@inject NavigationManager Nav
+@inject AppState State
+
+<PageTitle>หน้าแรก - MyBudg</PageTitle>
+
+@if (summary is null)
+{
+    <p class="muted center">กำลังโหลด...</p>
+}
+else
+{
+    <section class="band">
+        <MonthNav Month="month" MonthChanged="ChangeMonth" />
+
+        @if (summary.DailyAllowance is { } allowance)
+        {
+            @if (allowance == 0 && summary.Income == 0 && summary.Expense == 0)
+            {
+                <p class="band-lead">ยังไม่รู้ว่าวันนี้ใช้ได้เท่าไหร่</p>
+                <p class="band-sub">จดรายรับสักรายการ หรือบอกรายได้ต่อเดือนตอนเริ่มใช้งาน แล้วเราจะคำนวณให้</p>
+            }
+            else if (allowance == 0)
+            {
+                <p class="band-lead">เดือนนี้ใช้เกินรายรับแล้ว</p>
+                <p class="band-sub">@summary.Message</p>
+            }
+            else
+            {
+                <p class="band-lead">วันนี้ใช้ได้อีก</p>
+                <p class="band-figure">@allowance.BahtShort()</p>
+                <p class="band-sub">ถ้าอยากให้เงินพอถึงสิ้นเดือนอีก @summary.DaysLeft วัน เหลือรวม @summary.Remaining.Baht()</p>
+            }
+        }
+        else
+        {
+            <p class="band-lead">เดือนนี้เหลือ</p>
+            <p class="band-figure @(summary.Remaining < 0 ? "negative" : "")">@summary.Remaining.Baht()</p>
+            <p class="band-sub">@summary.Message</p>
+        }
+
+        <DayStrip DailyExpense="summary.DailyExpense" Allowance="summary.DailyAllowance"
+                  TodayDay="@(month == MonthRange.Current ? DateTime.Today.Day : null)" />
+
+        <dl class="band-totals">
+            <div><dt>รับแล้ว</dt><dd>@summary.Income.Baht()</dd></div>
+            <div><dt>จ่ายแล้ว</dt><dd>@summary.Expense.Baht()</dd></div>
+        </dl>
+    </section>
+
+    @if (summary.Income == 0 && summary.Expense == 0 && recent.Count == 0)
+    {
+        <section class="block empty">
+            <h2>เริ่มจดรายการแรกกันเลย</h2>
+            <p class="muted">กด "จดรายการ" ด้านล่าง ใส่จำนวนเงิน แล้วแตะหมวด ก็เสร็จแล้ว</p>
+            <button class="btn btn-primary" @onclick="() => State.OpenQuickAdd()">จดรายการแรก</button>
+        </section>
+    }
+    else
+    {
+        <section class="block">
+            <h2>เงินไปอยู่ที่ไหนบ้าง</h2>
+            @if (summary.ExpenseByCategory.Count == 0)
+            {
+                <p class="muted">ยังไม่มีรายจ่ายในเดือนนี้</p>
+            }
+            else
+            {
+                <CategoryRibbon Slices="slices" Label="สัดส่วนรายจ่ายแต่ละหมวด" />
+            }
+        </section>
+
+        <section class="block">
+            <h2>6 เดือนที่ผ่านมา</h2>
+            <BarChart Months="summary.LastMonths" />
+        </section>
+
+        <section class="block">
+            <div class="block-head">
+                <h2>รายการล่าสุด</h2>
+                <a href="transactions">ดูทั้งหมด</a>
+            </div>
+            <TransactionList Items="recent" ShowActions="false" />
+        </section>
+    }
+}
+
+@code {
+    private MonthRange month = MonthRange.Current;
+    private MonthSummary? summary;
+    private IReadOnlyList<TransactionItem> recent = [];
+    private IReadOnlyList<CategoryRibbon.Slice> slices = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.DataChanged += OnChanged;
+        if (!await OnboardingSvc.IsDoneAsync())
+        {
+            Nav.NavigateTo("onboarding");
+            return;
+        }
+        await LoadAsync();
+    }
+
+    private void OnChanged() => _ = InvokeAsync(async () => { await LoadAsync(); StateHasChanged(); });
+
+    private async Task ChangeMonth(MonthRange m)
+    {
+        month = m;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        summary = await Dashboard.GetMonthAsync(month);
+        recent = await Transactions.GetRecentAsync(5);
+        slices = summary.ExpenseByCategory.Select(c => new CategoryRibbon.Slice(c.Category.Name, c.Amount, c.Category.Color)).ToList();
+    }
+
+    public void Dispose() => State.DataChanged -= OnChanged;
+}

@@ -1,0 +1,33 @@
+@using System.Globalization
+@{
+    var total = Slices.Sum(s => s.Value);
+    string W(decimal v) => (total == 0 ? 0 : v / total * 100).ToString("0.##", CultureInfo.InvariantCulture);
+}
+@if (total > 0)
+{
+    <div class="ribbon" role="img" aria-label="@Label">
+        @foreach (var s in Slices)
+        {
+            <span style="width:@(W(s.Value))%;background:@s.Color" title="@s.Label"></span>
+        }
+    </div>
+    <ul class="ranklist">
+        @foreach (var s in Slices)
+        {
+            <li>
+                <span class="swatch" style="background:@s.Color"></span>
+                <span class="rank-name">@s.Label</span>
+                <span class="leader"></span>
+                <span class="rank-val">@(ShowAmount ? s.Value.BahtShort() : "")<small class="muted"> @(Math.Round(s.Value / total * 100, 0))%</small></span>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    public record Slice(string Label, decimal Value, string Color);
+
+    [Parameter, EditorRequired] public IReadOnlyList<Slice> Slices { get; set; } = [];
+    [Parameter] public bool ShowAmount { get; set; } = true;
+    [Parameter] public string Label { get; set; } = "สัดส่วน";
+}

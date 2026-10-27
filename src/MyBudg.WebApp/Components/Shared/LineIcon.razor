@@ -1,0 +1,32 @@
+<svg class="lineicon" width="@Size" height="@Size" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="@PathData"></path></svg>
+
+@code {
+    /// <summary>คีย์ไอคอน (หรืออีโมจิเก่า) — ดู CategoryIcons</summary>
+    [Parameter] public string? Name { get; set; }
+    [Parameter] public int Size { get; set; } = 22;
+
+    private string PathData => Paths.GetValueOrDefault(CategoryIcons.Normalize(Name), Paths[CategoryIcons.Other]);
+
+    private static readonly Dictionary<string, string> Paths = new()
+    {
+        ["food"] = "M7 3v8 M5 3v5a2 2 0 0 0 4 0V3 M7 11v10 M16 3c-2 2-2 6 0 8v10",
+        ["bus"] = "M5 5h14v12H5z M5 11h14 M8 20v-3 M16 20v-3",
+        ["home"] = "M4 11l8-7 8 7 M6 10v10h12V10",
+        ["bills"] = "M9 18h6 M10 21h4 M12 3a6 6 0 0 0-4 10c1 1 1 2 1 3h6c0-1 0-2 1-3a6 6 0 0 0-4-10z",
+        ["health"] = "M12 20s-7-4.5-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 5.5-7 10-7 10z",
+        ["bag"] = "M6 8h12l1 12H5z M9 8a3 3 0 0 1 6 0",
+        ["film"] = "M4 5h16v14H4z M4 9h16 M4 15h16 M9 5v14 M15 5v14",
+        ["save"] = "M5 11h14v9H5z M8 11V8a4 4 0 0 1 8 0v3",
+        ["other"] = "M4 8l8-4 8 4v8l-8 4-8-4z M4 8l8 4 8-4 M12 12v8",
+        ["cash"] = "M3 7h18v10H3z M12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4",
+        ["sparkle"] = "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z",
+        ["gift"] = "M4 10h16v10H4z M3 7h18v3H3z M12 7v13 M12 7c-2 0-4-1-3-3 1-1.5 3 0 3 3z M12 7c2 0 4-1 3-3-1-1.5-3 0-3 3z",
+        ["fund"] = "M12 3v9h9 M12 3a9 9 0 1 0 9 9",
+        ["stock"] = "M5 20v-6 M11 20V6 M17 20v-9 M3 20h18",
+        ["crypto"] = "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M9.5 9h4a1.5 1.5 0 0 1 0 3h-4 M9.5 12h4.5a1.5 1.5 0 0 1 0 3H9.5 M11 7v2 M11 15v2",
+        ["gold"] = "M3 17l3-8h12l3 8z M8 13h8",
+        ["deposit"] = "M3 10l9-6 9 6 M5 10v8 M10 10v8 M14 10v8 M19 10v8 M3 20h18",
+        ["briefcase"] = "M4 8h16v11H4z M9 8V5h6v3 M4 13h16",
+    };
+}
