@@ -9,7 +9,7 @@ public interface IDashboardService
     Task<MonthSummary> GetMonthAsync(MonthRange month, int monthsBack = 6);
 }
 
-public class DashboardService(ITransactionRepository transactions, ICategoryService categories) : IDashboardService
+public class DashboardService(ITransactionRepository transactions, ICategoryService categories, IUserProfileRepository profiles) : IDashboardService
 {
     public async Task<MonthSummary> GetMonthAsync(MonthRange month, int monthsBack = 6)
     {
@@ -36,8 +36,21 @@ public class DashboardService(ITransactionRepository transactions, ICategoryServ
         var remaining = current.Income - current.Expense;
         var percent = current.Income == 0 ? 0 : Math.Round(current.Expense / current.Income * 100, 0);
 
+        var daysInMonth = DateTime.DaysInMonth(month.Year, month.Month);
+        var daily = new decimal[daysInMonth];
+        foreach (var t in inMonth) daily[t.Date.Day - 1] += t.Amount;
+
+        decimal? allowance = null;
+        var daysLeft = 0;
+        if (month == MonthRange.Current)
+        {
+            daysLeft = daysInMonth - DateTime.Today.Day + 1;
+            var expectedIncome = current.Income > 0 ? current.Income : (await profiles.GetAsync())?.MonthlyIncome ?? 0;
+            allowance = Math.Max(0, Math.Floor((expectedIncome - current.Expense) / daysLeft));
+        }
+
         return new MonthSummary(month.Year, month.Month, current.Income, current.Expense, remaining, percent,
-            BuildMessage(current.Income, current.Expense, percent), byCat, last);
+            BuildMessage(current.Income, current.Expense, percent), byCat, last, daily, allowance, daysLeft);
     }
 
     private static MonthTotal Total(IEnumerable<FinanceTransaction> all, MonthRange m)

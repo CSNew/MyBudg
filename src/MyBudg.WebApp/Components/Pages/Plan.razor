@@ -21,7 +21,7 @@ else
         <div class="alert alert-danger" role="alert">@message</div>
     }
 
-    <section class="card">
+    <section class="block">
         <h2>งบรายเดือนแต่ละหมวด</h2>
         <p class="muted small">ตั้งวงเงินที่อยากใช้ต่อเดือน แล้วเราจะเตือนเมื่อใกล้เต็ม</p>
         @foreach (var c in expenseCats)
@@ -30,33 +30,30 @@ else
             <div class="budget-row">
                 <div class="budget-head">
                     <span>@c.Icon @c.Name</span>
-                    @if (b is not null)
-                    {
-                        <span class="@(b.Level == BudgetLevel.Over ? "neg" : "muted")">@b.Spent.BahtShort() / @b.Budget.BahtShort()</span>
-                    }
+                    <input class="input input-sm budget-input" type="text" inputmode="decimal" placeholder="วงเงิน (บาท)" aria-label="วงเงิน @c.Name"
+                           value="@(c.MonthlyBudget?.ToString("0.##", CultureInfo.InvariantCulture))"
+                           @onchange="e => SaveBudget(c.Id, e.Value?.ToString())" />
                 </div>
                 @if (b is not null)
                 {
                     <ProgressBar Percent="b.Percent" Level="b.Level" />
-                    @if (b.Level == BudgetLevel.Over)
-                    {
-                        <small class="neg">เกินงบ @((b.Spent - b.Budget).Baht())</small>
-                    }
-                    else if (b.Level == BudgetLevel.Warning)
-                    {
-                        <small class="warn">ใกล้เต็มงบแล้ว (@b.Percent%)</small>
-                    }
+                    <div class="budget-head">
+                        <small class="@(b.Level == BudgetLevel.Over ? "neg" : "muted")">ใช้แล้ว @b.Spent.BahtShort() จาก @b.Budget.BahtShort()</small>
+                        @if (b.Level == BudgetLevel.Over)
+                        {
+                            <small class="neg">เกินงบ @((b.Spent - b.Budget).Baht())</small>
+                        }
+                        else if (b.Level == BudgetLevel.Warning)
+                        {
+                            <small class="warn">ใกล้เต็มงบแล้ว (@b.Percent%)</small>
+                        }
+                    </div>
                 }
-                <div class="inline-form">
-                    <input class="input input-sm" type="text" inputmode="decimal" placeholder="ตั้งวงเงิน (บาท)" aria-label="วงเงิน @c.Name"
-                           value="@(c.MonthlyBudget?.ToString("0.##", CultureInfo.InvariantCulture))"
-                           @onchange="e => SaveBudget(c.Id, e.Value?.ToString())" />
-                </div>
             </div>
         }
     </section>
 
-    <section class="card">
+    <section class="block">
         <h2>กฎ 50/30/20</h2>
         <p class="muted small">แนวทางง่ายๆ: ใช้จำเป็น 50% · อยากได้ 30% · ออมและลงทุน 20% ของรายรับ
             @if (plan.MonthlyIncome == 0) { <span> (ยังไม่มีรายรับเดือนนี้ จึงยังคำนวณไม่ได้)</span> }
@@ -67,14 +64,14 @@ else
             <div class="budget-row">
                 <div class="budget-head">
                     <span>@r.Label</span>
-                    <span class="@(ok ? "muted" : "neg")">@r.ActualPercent% <small>(เป้า @r.TargetPercent%)</small> · @r.Amount.BahtShort()</span>
+                    <span class="@(ok ? "muted" : "warn")">@r.ActualPercent% <small>(เป้า @r.TargetPercent%)</small> · @r.Amount.BahtShort()</span>
                 </div>
-                <ProgressBar Percent="@(r.TargetPercent == 0 ? 0 : r.ActualPercent / r.TargetPercent * 100)" Level="@(ok ? BudgetLevel.Ok : BudgetLevel.Over)" />
+                <ProgressBar Percent="@(r.TargetPercent == 0 ? 0 : r.ActualPercent / r.TargetPercent * 100)" Level="@(ok ? BudgetLevel.Ok : BudgetLevel.Warning)" />
             </div>
         }
     </section>
 
-    <section class="card">
+    <section class="block">
         <h2>เงินสำรองฉุกเฉิน</h2>
         @if (plan.EmergencyMonths is null)
         {
@@ -87,7 +84,7 @@ else
         }
     </section>
 
-    <section class="card">
+    <section class="block">
         <h2>เป้าหมายการออม</h2>
         @if (plan.Goals.Count == 0)
         {
@@ -97,8 +94,8 @@ else
         {
             <div class="goal">
                 <div class="budget-head">
-                    <strong>🎯 @g.Goal.Name</strong>
-                    <button class="btn btn-ghost btn-sm" aria-label="ลบเป้าหมาย" @onclick="() => DeleteGoal(g.Goal.Id)">🗑️</button>
+                    <strong>@g.Goal.Name</strong>
+                    <button class="btn btn-quiet btn-sm" aria-label="ลบเป้าหมาย @g.Goal.Name" @onclick="() => DeleteGoal(g.Goal.Id)">ลบ</button>
                 </div>
                 <ProgressBar Percent="g.Percent" Level="BudgetLevel.Ok" />
                 <div class="budget-head">

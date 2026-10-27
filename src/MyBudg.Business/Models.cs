@@ -16,7 +16,10 @@ public record MonthSummary(
     decimal Remaining, decimal SpentPercent,
     string Message,
     IReadOnlyList<CategoryTotal> ExpenseByCategory,
-    IReadOnlyList<MonthTotal> LastMonths);
+    IReadOnlyList<MonthTotal> LastMonths,
+    IReadOnlyList<decimal> DailyExpense,
+    decimal? DailyAllowance,
+    int DaysLeft);
 
 public enum BudgetLevel { Ok, Warning, Over }
 

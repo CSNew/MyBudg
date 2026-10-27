@@ -14,7 +14,7 @@
     }
 </div>
 
-<section class="card">
+<section class="block">
     @if (step == 1)
     {
         <h1>ยินดีต้อนรับ 👋</h1>
@@ -41,7 +41,7 @@
             }
         </div>
         <div class="row-2">
-            <button class="btn btn-ghost" @onclick="() => step = 1">ย้อนกลับ</button>
+            <button class="btn btn-quiet" @onclick="() => step = 1">ย้อนกลับ</button>
             <button class="btn btn-primary" @onclick="() => step = 3">ถัดไป</button>
         </div>
     }
@@ -54,8 +54,8 @@
             <div class="alert alert-danger" role="alert">@error</div>
         }
         <button class="btn btn-primary btn-block btn-lg" disabled="@busy" @onclick="Finish">เริ่มใช้งาน</button>
-        <button class="btn btn-ghost btn-block" disabled="@busy" @onclick="Demo">ลองด้วยข้อมูลตัวอย่าง</button>
-        <button class="btn btn-ghost btn-block" @onclick="() => step = 2">ย้อนกลับ</button>
+        <button class="btn btn-quiet btn-block" disabled="@busy" @onclick="Demo">ลองด้วยข้อมูลตัวอย่าง</button>
+        <button class="btn btn-quiet btn-block" @onclick="() => step = 2">ย้อนกลับ</button>
     }
 </section>
 

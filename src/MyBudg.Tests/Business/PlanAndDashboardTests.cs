@@ -130,3 +130,49 @@ public class PlanAndDashboardTests
         Assert.Equal("\"say \"\"hi\"\"\"", ExportService.Escape("say \"hi\""));
     }
 }
+
+public class DailyAllowanceTests
+{
+    [Fact]
+    public async Task Dashboard_ComputesDailyAllowanceAndDailySpend()
+    {
+        using var env = new TestEnv();
+        var cats = await env.Get<ICategoryService>().ListAsync();
+        var tx = env.Get<ITransactionService>();
+        var today = DateTime.Today;
+        await tx.AddAsync(new(TransactionType.Income, 31000, cats.First(c => c.Name == "เงินเดือน").Id, today, null));
+        await tx.AddAsync(new(TransactionType.Expense, 500, cats.First(c => c.Name == "อาหาร").Id, today, null));
+
+        var s = await env.Get<IDashboardService>().GetMonthAsync(MonthRange.Current);
+
+        var daysInMonth = DateTime.DaysInMonth(today.Year, today.Month);
+        Assert.Equal(daysInMonth, s.DailyExpense.Count);
+        Assert.Equal(500m, s.DailyExpense[today.Day - 1]);
+        Assert.Equal(daysInMonth - today.Day + 1, s.DaysLeft);
+        Assert.Equal(Math.Floor(30500m / s.DaysLeft), s.DailyAllowance);
+    }
+
+    [Fact]
+    public async Task Allowance_FallsBackToProfileIncome_AndIsNullForPastMonths()
+    {
+        using var env = new TestEnv();
+        await env.Get<IOnboardingService>().CompleteAsync(30000, []);
+
+        var now = await env.Get<IDashboardService>().GetMonthAsync(MonthRange.Current);
+        Assert.True(now.DailyAllowance > 0);
+
+        var past = await env.Get<IDashboardService>().GetMonthAsync(MonthRange.Current.AddMonths(-1));
+        Assert.Null(past.DailyAllowance);
+    }
+
+    [Fact]
+    public async Task Allowance_IsZeroWhenOverspent()
+    {
+        using var env = new TestEnv();
+        var cats = await env.Get<ICategoryService>().ListAsync();
+        await env.Get<ITransactionService>().AddAsync(new(TransactionType.Expense, 900, cats.First(c => c.Name == "อาหาร").Id, DateTime.Today, null));
+
+        var s = await env.Get<IDashboardService>().GetMonthAsync(MonthRange.Current);
+        Assert.Equal(0m, s.DailyAllowance);
+    }
+}

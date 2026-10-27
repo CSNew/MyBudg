@@ -15,48 +15,73 @@
 }
 else
 {
-    <MonthNav Month="month" MonthChanged="ChangeMonth" />
+    <section class="band">
+        <MonthNav Month="month" MonthChanged="ChangeMonth" />
 
-    <section class="hero card">
-        <div class="hero-label">เหลือใช้ได้เดือนนี้</div>
-        <div class="hero-amount @(summary.Remaining < 0 ? "neg" : "")">@summary.Remaining.Baht()</div>
-        <p class="hero-msg">@summary.Message</p>
-        <div class="stat-row">
-            <div class="stat"><span class="dot" style="background:var(--income)"></span><div><small>รายรับ</small><strong>@summary.Income.Baht()</strong></div></div>
-            <div class="stat"><span class="dot" style="background:var(--expense)"></span><div><small>รายจ่าย</small><strong>@summary.Expense.Baht()</strong></div></div>
-        </div>
+        @if (summary.DailyAllowance is { } allowance)
+        {
+            @if (allowance == 0 && summary.Income == 0 && summary.Expense == 0)
+            {
+                <p class="band-lead">ยังไม่รู้ว่าวันนี้ใช้ได้เท่าไหร่</p>
+                <p class="band-sub">จดรายรับสักรายการ หรือบอกรายได้ต่อเดือนตอนเริ่มใช้งาน แล้วเราจะคำนวณให้</p>
+            }
+            else if (allowance == 0)
+            {
+                <p class="band-lead">เดือนนี้ใช้เกินรายรับแล้ว</p>
+                <p class="band-sub">@summary.Message</p>
+            }
+            else
+            {
+                <p class="band-lead">วันนี้ใช้ได้อีก</p>
+                <p class="band-figure">@allowance.BahtShort()</p>
+                <p class="band-sub">ถ้าอยากให้เงินพอถึงสิ้นเดือนอีก @summary.DaysLeft วัน เหลือรวม @summary.Remaining.Baht()</p>
+            }
+        }
+        else
+        {
+            <p class="band-lead">เดือนนี้เหลือ</p>
+            <p class="band-figure @(summary.Remaining < 0 ? "negative" : "")">@summary.Remaining.Baht()</p>
+            <p class="band-sub">@summary.Message</p>
+        }
+
+        <DayStrip DailyExpense="summary.DailyExpense" Allowance="summary.DailyAllowance"
+                  TodayDay="@(month == MonthRange.Current ? DateTime.Today.Day : null)" />
+
+        <dl class="band-totals">
+            <div><dt>รับแล้ว</dt><dd>@summary.Income.Baht()</dd></div>
+            <div><dt>จ่ายแล้ว</dt><dd>@summary.Expense.Baht()</dd></div>
+        </dl>
     </section>
 
     @if (summary.Income == 0 && summary.Expense == 0 && recent.Count == 0)
     {
-        <div class="card empty">
-            <div class="empty-icon">✍️</div>
-            <h2>เริ่มบันทึกรายการแรกกันเลย</h2>
-            <p class="muted">กดปุ่ม <strong>＋</strong> ด้านล่าง ใส่จำนวนเงิน แล้วเลือกหมวด ก็เสร็จแล้ว</p>
-            <button class="btn btn-primary" @onclick="() => State.OpenQuickAdd()">บันทึกรายการ</button>
-        </div>
+        <section class="block empty">
+            <h2>เริ่มจดรายการแรกกันเลย</h2>
+            <p class="muted">กด "จดรายการ" ด้านล่าง ใส่จำนวนเงิน แล้วแตะหมวด ก็เสร็จแล้ว</p>
+            <button class="btn btn-primary" @onclick="() => State.OpenQuickAdd()">จดรายการแรก</button>
+        </section>
     }
     else
     {
-        <section class="card">
-            <h2>รายจ่ายแยกตามหมวด</h2>
+        <section class="block">
+            <h2>เงินไปอยู่ที่ไหนบ้าง</h2>
             @if (summary.ExpenseByCategory.Count == 0)
             {
                 <p class="muted">ยังไม่มีรายจ่ายในเดือนนี้</p>
             }
             else
             {
-                <DonutChart Slices="slices" CenterText="@summary.Expense.BahtShort()" Label="รายจ่ายแยกตามหมวด" />
+                <CategoryRibbon Slices="slices" Label="สัดส่วนรายจ่ายแต่ละหมวด" />
             }
         </section>
 
-        <section class="card">
+        <section class="block">
             <h2>6 เดือนที่ผ่านมา</h2>
             <BarChart Months="summary.LastMonths" />
         </section>
 
-        <section class="card">
-            <div class="card-head">
+        <section class="block">
+            <div class="block-head">
                 <h2>รายการล่าสุด</h2>
                 <a href="transactions">ดูทั้งหมด</a>
             </div>
@@ -69,7 +94,7 @@ else
     private MonthRange month = MonthRange.Current;
     private MonthSummary? summary;
     private IReadOnlyList<TransactionItem> recent = [];
-    private IReadOnlyList<DonutChart.Slice> slices = [];
+    private IReadOnlyList<CategoryRibbon.Slice> slices = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -94,7 +119,7 @@ else
     {
         summary = await Dashboard.GetMonthAsync(month);
         recent = await Transactions.GetRecentAsync(5);
-        slices = summary.ExpenseByCategory.Select(c => new DonutChart.Slice($"{c.Category.Icon} {c.Category.Name}", c.Amount, c.Category.Color)).ToList();
+        slices = summary.ExpenseByCategory.Select(c => new CategoryRibbon.Slice($"{c.Category.Icon} {c.Category.Name}", c.Amount, c.Category.Color)).ToList();
     }
 
     public void Dispose() => State.DataChanged -= OnChanged;

@@ -4,34 +4,35 @@
 }
 else
 {
-    <ul class="tx-list">
+    <ul class="ledger">
         @foreach (var i in Items)
         {
             var t = i.Transaction;
             <li class="tx">
-                <span class="tx-icon" style="background:color-mix(in srgb, @i.CategoryColor 22%, transparent)">@i.CategoryIcon</span>
-                <div class="tx-main">
-                    <strong>@(string.IsNullOrWhiteSpace(t.Note) ? i.CategoryName : t.Note)</strong>
-                    <small class="muted">@i.CategoryName · @t.Date.ToString("d MMM yyyy", Formatting.Thai)</small>
-                </div>
-                <div class="tx-amount @(t.Type == TransactionType.Income ? "income" : "expense")">
-                    @(t.Type == TransactionType.Income ? "+" : "−")@t.Amount.Baht()
-                </div>
-                @if (ShowActions)
-                {
-                    <div class="tx-actions">
-                        @if (confirmDeleteId == t.Id)
-                        {
-                            <button class="btn btn-danger btn-sm" @onclick="() => Delete(t.Id)">ลบเลย</button>
-                            <button class="btn btn-ghost btn-sm" @onclick="() => confirmDeleteId = null">ยกเลิก</button>
-                        }
-                        else
-                        {
-                            <button class="btn btn-ghost btn-sm" aria-label="แก้ไข" @onclick="() => OnEdit.InvokeAsync(t.Id)">✏️</button>
-                            <button class="btn btn-ghost btn-sm" aria-label="ลบ" @onclick="() => confirmDeleteId = t.Id">🗑️</button>
-                        }
+                <span class="tx-icon" style="--tint:@i.CategoryColor">@i.CategoryIcon</span>
+                <div class="tx-body">
+                    <div class="tx-line">
+                        <strong class="tx-title">@(string.IsNullOrWhiteSpace(t.Note) ? i.CategoryName : t.Note)</strong>
+                        <span class="leader"></span>
+                        <span class="tx-amount @(t.Type == TransactionType.Income ? "income" : "")">@(t.Type == TransactionType.Income ? "+" : "−")@t.Amount.Baht()</span>
                     </div>
-                }
+                    <small class="muted">@i.CategoryName, @t.Date.ToString("d MMM yyyy", Formatting.Thai)</small>
+                    @if (ShowActions)
+                    {
+                        <div class="tx-actions">
+                            @if (confirmDeleteId == t.Id)
+                            {
+                                <button class="btn btn-danger btn-sm" @onclick="() => Delete(t.Id)">ลบรายการนี้</button>
+                                <button class="btn btn-quiet btn-sm" @onclick="() => confirmDeleteId = null">ไม่ลบ</button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-quiet btn-sm" @onclick="() => OnEdit.InvokeAsync(t.Id)">แก้ไข</button>
+                                <button class="btn btn-quiet btn-sm" @onclick="() => confirmDeleteId = t.Id">ลบ</button>
+                            }
+                        </div>
+                    }
+                </div>
             </li>
         }
     </ul>

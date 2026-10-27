@@ -18,21 +18,21 @@ else
         <div class="alert alert-danger" role="alert">@message</div>
     }
 
-    <section class="hero card">
-        <div class="hero-label">กำไร/ขาดทุนรวม</div>
-        <div class="hero-amount @(overview.Profit < 0 ? "neg" : "pos")">@Signed(overview.Profit) <small>(@Signed(overview.ProfitPercent, "N2")%)</small></div>
-        <div class="stat-row">
-            <div class="stat"><div><small title="เงินที่ใส่ลงไปทั้งหมด">ต้นทุน</small><strong>@overview.TotalCost.Baht()</strong></div></div>
-            <div class="stat"><div><small title="ถ้าขายวันนี้จะได้เงินเท่าไหร่">มูลค่าปัจจุบัน</small><strong>@overview.TotalValue.Baht()</strong></div></div>
-        </div>
-        <p class="muted small"><strong>ต้นทุน</strong> = เงินที่เราใส่ลงไป · <strong>มูลค่าปัจจุบัน</strong> = ถ้าขายวันนี้จะได้เท่าไหร่</p>
+    <section class="band">
+        <p class="band-lead">ตอนนี้กำไรหรือขาดทุนรวม</p>
+        <p class="band-figure @(overview.Profit < 0 ? "negative" : "")">@Signed(overview.Profit) <small>(@Signed(overview.ProfitPercent, "N2")%)</small></p>
+        <dl class="band-totals">
+            <div><dt title="เงินที่ใส่ลงไปทั้งหมด">ต้นทุน</dt><dd>@overview.TotalCost.Baht()</dd></div>
+            <div><dt title="ถ้าขายวันนี้จะได้เงินเท่าไหร่">มูลค่าปัจจุบัน</dt><dd>@overview.TotalValue.Baht()</dd></div>
+        </dl>
+        <p class="band-sub">ต้นทุนคือเงินที่ใส่ลงไป มูลค่าปัจจุบันคือเงินที่จะได้ถ้าขายวันนี้</p>
     </section>
 
     @if (overview.Items.Count > 0)
     {
         <section class="card">
             <h2>สัดส่วนพอร์ต</h2>
-            <DonutChart Slices="slices" CenterText="@overview.TotalValue.BahtShort()" Label="สัดส่วนพอร์ต" />
+            <CategoryRibbon Slices="slices" Label="สัดส่วนพอร์ต" />
         </section>
     }
 
@@ -40,7 +40,7 @@ else
         <h2>รายการลงทุน</h2>
         @if (overview.Items.Count == 0)
         {
-            <div class="empty"><div class="empty-icon">📈</div><p class="muted">ยังไม่มีการลงทุน เพิ่มรายการแรกด้านล่างได้เลย</p></div>
+            <div class="empty"><p class="muted">ยังไม่มีการลงทุน เพิ่มรายการแรกด้านล่างได้เลย</p></div>
         }
         @foreach (var i in overview.Items)
         {
@@ -59,11 +59,11 @@ else
                     @if (confirmId == i.Id)
                     {
                         <button class="btn btn-danger btn-sm" @onclick="() => Delete(i.Id)">ลบเลย</button>
-                        <button class="btn btn-ghost btn-sm" @onclick="() => confirmId = null">ยกเลิก</button>
+                        <button class="btn btn-quiet btn-sm" @onclick="() => confirmId = null">ยกเลิก</button>
                     }
                     else
                     {
-                        <button class="btn btn-ghost btn-sm" aria-label="ลบ" @onclick="() => confirmId = i.Id">🗑️</button>
+                        <button class="btn btn-quiet btn-sm" aria-label="ลบ @i.Name" @onclick="() => confirmId = i.Id">ลบ</button>
                     }
                 </div>
             </div>
@@ -91,7 +91,7 @@ else
 
 @code {
     private InvestmentOverview? overview;
-    private IReadOnlyList<DonutChart.Slice> slices = [];
+    private IReadOnlyList<CategoryRibbon.Slice> slices = [];
     private string? message;
     private int? confirmId;
     private InvestmentType type = InvestmentType.Fund;
@@ -104,7 +104,7 @@ else
     private async Task LoadAsync()
     {
         overview = await Service.GetOverviewAsync();
-        slices = overview.Allocation.Select((a, idx) => new DonutChart.Slice(TypeName(a.Type), a.Value, Palette[idx % Palette.Length])).ToList();
+        slices = overview.Allocation.Select((a, idx) => new CategoryRibbon.Slice(TypeName(a.Type), a.Value, Palette[idx % Palette.Length])).ToList();
     }
 
     private static bool TryAmount(string? text, out decimal v) =>

@@ -20,7 +20,7 @@
             <option value="@c.Id">@c.Icon @c.Name</option>
         }
     </select>
-    <button class="btn btn-ghost" @onclick="DownloadCsv">⬇️ ส่งออก CSV</button>
+    <button class="btn btn-quiet" @onclick="DownloadCsv">ส่งออก CSV</button>
 </div>
 
 @if (message is not null)
@@ -28,19 +28,18 @@
     <div class="alert alert-danger" role="alert">@message</div>
 }
 
-<section class="card">
+<section class="block">
     <div class="stat-row">
         <div class="stat"><span class="dot" style="background:var(--income)"></span><div><small>รายรับ</small><strong>@income.Baht()</strong></div></div>
         <div class="stat"><span class="dot" style="background:var(--expense)"></span><div><small>รายจ่าย</small><strong>@expense.Baht()</strong></div></div>
     </div>
 </section>
 
-<section class="card">
+<section class="block">
     @if (items.Count == 0)
     {
         <div class="empty">
-            <div class="empty-icon">🧾</div>
-            <p class="muted">ไม่มีรายการในเดือนนี้ กดปุ่ม ＋ เพื่อเพิ่มรายการ</p>
+            <p class="muted">ไม่มีรายการในเดือนนี้ กด "จดรายการ" เพื่อเพิ่มรายการ</p>
         </div>
     }
     else
