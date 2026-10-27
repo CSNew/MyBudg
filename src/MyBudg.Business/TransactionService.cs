@@ -88,7 +88,7 @@ public class TransactionService(ITransactionRepository transactions, ICategorySe
     {
         var cats = (await categories.ListAsync(includeHidden: true)).ToDictionary(c => c.Id);
         return list.Select(t => cats.TryGetValue(t.CategoryId, out var c)
-            ? new TransactionItem(t, c.Name, c.Icon, c.Color)
-            : new TransactionItem(t, "ไม่ระบุ", "❔", "#94a3b8")).ToList();
+            ? new TransactionItem(t, c.Name, CategoryIcons.Normalize(c.Icon), c.Color)
+            : new TransactionItem(t, "ไม่ระบุ", CategoryIcons.Other, "#A89F91")).ToList();
     }
 }

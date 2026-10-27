@@ -17,7 +17,7 @@
         <option value="0">ทุกหมวด</option>
         @foreach (var c in categories)
         {
-            <option value="@c.Id">@c.Icon @c.Name</option>
+            <option value="@c.Id">@c.Name</option>
         }
     </select>
     <button class="btn btn-quiet" @onclick="DownloadCsv">ส่งออก CSV</button>

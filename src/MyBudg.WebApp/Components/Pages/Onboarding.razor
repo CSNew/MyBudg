@@ -35,7 +35,7 @@
             {
                 var on = !hidden.Contains(c.Name);
                 <button class="cat @(on ? "selected" : "")" style="--cat:@c.Color" @onclick="() => Toggle(c.Name)" aria-pressed="@on">
-                    <span class="cat-icon">@c.Icon</span>
+                    <span class="cat-icon" style="--cat:@c.Color"><LineIcon Name="@c.Icon" Size="26" /></span>
                     <span class="cat-name">@c.Name</span>
                 </button>
             }

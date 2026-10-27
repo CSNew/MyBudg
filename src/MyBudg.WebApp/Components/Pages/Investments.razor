@@ -46,7 +46,7 @@ else
         {
             <div class="inv">
                 <div class="budget-head">
-                    <strong>@Icon(i.Type) @i.Name <small class="muted">· @TypeName(i.Type)</small></strong>
+                    <strong class="with-icon"><LineIcon Name="@IconKey(i.Type)" Size="20" />@i.Name <small class="muted">· @TypeName(i.Type)</small></strong>
                     <span class="@(i.Profit < 0 ? "neg" : "pos")">@Signed(i.ProfitPercent, "N2")%</span>
                 </div>
                 <div class="budget-head">
@@ -77,7 +77,7 @@ else
                 <select class="input" @bind="type">
                     @foreach (var t in Enum.GetValues<InvestmentType>())
                     {
-                        <option value="@t">@Icon(t) @TypeName(t)</option>
+                        <option value="@t">@TypeName(t)</option>
                     }
                 </select>
             </label>
@@ -147,13 +147,13 @@ else
         _ => "อื่นๆ"
     };
 
-    private static string Icon(InvestmentType t) => t switch
+    private static string IconKey(InvestmentType t) => t switch
     {
-        InvestmentType.Fund => "🧺",
-        InvestmentType.Stock => "📊",
-        InvestmentType.Crypto => "🪙",
-        InvestmentType.Gold => "🥇",
-        InvestmentType.Deposit => "🏦",
-        _ => "💼"
+        InvestmentType.Fund => "fund",
+        InvestmentType.Stock => "stock",
+        InvestmentType.Crypto => "crypto",
+        InvestmentType.Gold => "gold",
+        InvestmentType.Deposit => "deposit",
+        _ => "briefcase"
     };
 }

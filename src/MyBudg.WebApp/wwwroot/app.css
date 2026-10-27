@@ -150,7 +150,10 @@ a { color: inherit; text-underline-offset: 3px; }
 /* ---------- รายการแบบสมุดบัญชี ---------- */
 .ledger { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
 .tx { display: flex; gap: 12px; }
-.tx-icon { flex: none; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; font-size: 1.2rem; background: color-mix(in srgb, var(--tint) 30%, var(--card)); }
+.lineicon { flex: none; display: block; }
+.with-icon { display: inline-flex; align-items: center; gap: 8px; }
+.with-icon .lineicon { color: var(--muted); }
+.tx-icon { flex: none; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: color-mix(in srgb, var(--tint) 30%, var(--card)); color: color-mix(in srgb, var(--tint) 45%, var(--text)); }
 .tx-body { flex: 1; min-width: 0; }
 .tx-line { display: flex; align-items: baseline; gap: 8px; }
 .tx-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; max-width: 62%; }
@@ -182,7 +185,7 @@ a { color: inherit; text-underline-offset: 3px; }
 .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(98px, 1fr)); gap: 10px; margin-bottom: 14px; }
 .cat { font: inherit; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; border-radius: 14px; border: 0; background: var(--card); color: var(--text); cursor: pointer; box-shadow: var(--sh-btn); }
 .cat.selected { background: var(--field); box-shadow: var(--sh-in), inset 0 -4px 0 var(--cat); font-weight: 600; }
-.cat-icon { font-size: 1.6rem; } .cat-name { font-size: .8rem; text-align: center; line-height: 1.3; }
+.cat-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: color-mix(in srgb, var(--cat) 30%, var(--card)); color: color-mix(in srgb, var(--cat) 45%, var(--text)); } .cat-name { font-size: .8rem; text-align: center; line-height: 1.3; }
 
 /* ---------- เริ่มต้นใช้งาน / บัญชี ---------- */
 .stepper { display: flex; gap: 8px; margin: 16px 0 0; }

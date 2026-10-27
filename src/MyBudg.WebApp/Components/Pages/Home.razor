@@ -119,7 +119,7 @@ else
     {
         summary = await Dashboard.GetMonthAsync(month);
         recent = await Transactions.GetRecentAsync(5);
-        slices = summary.ExpenseByCategory.Select(c => new CategoryRibbon.Slice($"{c.Category.Icon} {c.Category.Name}", c.Amount, c.Category.Color)).ToList();
+        slices = summary.ExpenseByCategory.Select(c => new CategoryRibbon.Slice(c.Category.Name, c.Amount, c.Category.Color)).ToList();
     }
 
     public void Dispose() => State.DataChanged -= OnChanged;

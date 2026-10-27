@@ -9,7 +9,7 @@ else
         {
             var t = i.Transaction;
             <li class="tx">
-                <span class="tx-icon" style="--tint:@i.CategoryColor">@i.CategoryIcon</span>
+                <span class="tx-icon" style="--tint:@i.CategoryColor"><LineIcon Name="@i.CategoryIcon" Size="20" /></span>
                 <div class="tx-body">
                     <div class="tx-line">
                         <strong class="tx-title">@(string.IsNullOrWhiteSpace(t.Note) ? i.CategoryName : t.Note)</strong>

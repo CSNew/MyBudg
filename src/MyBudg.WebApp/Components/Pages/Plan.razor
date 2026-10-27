@@ -29,7 +29,7 @@ else
             var b = plan.Budgets.FirstOrDefault(x => x.Category.Id == c.Id);
             <div class="budget-row">
                 <div class="budget-head">
-                    <span>@c.Icon @c.Name</span>
+                    <span class="with-icon"><LineIcon Name="@c.Icon" Size="20" />@c.Name</span>
                     <input class="input input-sm budget-input" type="text" inputmode="decimal" placeholder="วงเงิน (บาท)" aria-label="วงเงิน @c.Name"
                            value="@(c.MonthlyBudget?.ToString("0.##", CultureInfo.InvariantCulture))"
                            @onchange="e => SaveBudget(c.Id, e.Value?.ToString())" />

@@ -176,3 +176,22 @@ public class DailyAllowanceTests
         Assert.Equal(0m, s.DailyAllowance);
     }
 }
+
+public class CategoryIconTests
+{
+    [Fact]
+    public void DefaultCategories_UseKnownIconKeys() =>
+        Assert.All(DefaultCategories.Create(), c => Assert.Contains(c.Icon, CategoryIcons.Keys));
+
+    [Theory]
+    [InlineData("🍜", "food")]
+    [InlineData("🛍️", "bag")]
+    [InlineData("🛍", "bag")]
+    [InlineData("🐷", "save")]
+    [InlineData("food", "food")]
+    [InlineData("❔", "other")]
+    [InlineData("", "other")]
+    [InlineData(null, "other")]
+    public void Normalize_ConvertsLegacyEmojiAndUnknownValues(string? input, string expected) =>
+        Assert.Equal(expected, CategoryIcons.Normalize(input));
+}

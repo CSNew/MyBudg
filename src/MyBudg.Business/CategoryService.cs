@@ -41,7 +41,7 @@ public class CategoryService(ICategoryRepository repo) : ICategoryService
         {
             Name = name,
             Kind = kind,
-            Icon = string.IsNullOrWhiteSpace(icon) ? "📦" : icon.Trim(),
+            Icon = CategoryIcons.Normalize(icon),
             Group = kind == TransactionType.Expense ? SpendingGroup.Want : SpendingGroup.None
         });
         return Result.Ok();

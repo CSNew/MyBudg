@@ -30,7 +30,7 @@
             @foreach (var c in categories.Where(c => c.Kind == type))
             {
                 <button class="cat @(categoryId == c.Id ? "selected" : "")" style="--cat:@c.Color" @onclick="() => categoryId = c.Id">
-                    <span class="cat-icon">@c.Icon</span>
+                    <span class="cat-icon" style="--cat:@c.Color"><LineIcon Name="@c.Icon" Size="26" /></span>
                     <span class="cat-name">@c.Name</span>
                 </button>
             }
