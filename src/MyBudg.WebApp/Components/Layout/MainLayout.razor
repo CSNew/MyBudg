@@ -1,0 +1,44 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Nav
+@inject AppState State
+
+<div class="app">
+    <header class="topbar">
+        <a class="brand" href="">💰 MyBudg</a>
+        <AuthorizeView>
+            <Authorized>
+                <div class="topbar-user">
+                    <a href="Account/Manage/ChangePassword" class="muted small" title="เปลี่ยนรหัสผ่าน">@context.User.Identity?.Name</a>
+                    <form action="Account/Logout" method="post">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="returnUrl" value="" />
+                        <button type="submit" class="btn btn-ghost btn-sm">ออกจากระบบ</button>
+                    </form>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </header>
+
+    <main class="content">
+        @Body
+    </main>
+
+    <nav class="tabbar" aria-label="เมนูหลัก">
+        <NavLink href="" Match="NavLinkMatch.All"><span>🏠</span>หน้าแรก</NavLink>
+        <NavLink href="transactions"><span>🧾</span>รายการ</NavLink>
+        <span class="tabbar-gap" aria-hidden="true"></span>
+        <NavLink href="plan"><span>🎯</span>วางแผน</NavLink>
+        <NavLink href="investments"><span>📈</span>ลงทุน</NavLink>
+    </nav>
+
+    <AuthorizeView>
+        <button class="fab" aria-label="บันทึกรายการ" @onclick="() => State.OpenQuickAdd()">＋</button>
+        <QuickAdd />
+    </AuthorizeView>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    เกิดข้อผิดพลาดบางอย่าง
+    <a href="." class="reload">โหลดใหม่</a>
+    <span class="dismiss">🗙</span>
+</div>

@@ -1,0 +1,37 @@
+@using System.Globalization
+@{
+    var total = Slices.Sum(s => s.Value);
+    const double r = 15.9155; // เส้นรอบวง = 100
+    double offset = 0;
+}
+<div class="donut-wrap">
+    <svg viewBox="0 0 42 42" class="donut" role="img" aria-label="@Label">
+        <circle cx="21" cy="21" r="@r.ToString(CultureInfo.InvariantCulture)" fill="none" stroke="var(--track)" stroke-width="6"></circle>
+        @if (total > 0)
+        {
+            @foreach (var s in Slices)
+            {
+                var pct = (double)(s.Value / total) * 100;
+                <circle cx="21" cy="21" r="@r.ToString(CultureInfo.InvariantCulture)" fill="none" stroke="@s.Color" stroke-width="6"
+                        stroke-dasharray="@pct.ToString("0.###", CultureInfo.InvariantCulture) @((100 - pct).ToString("0.###", CultureInfo.InvariantCulture))"
+                        stroke-dashoffset="@((25 - offset).ToString("0.###", CultureInfo.InvariantCulture))"></circle>
+                offset += pct;
+            }
+        }
+        <text x="21" y="21.8" text-anchor="middle" class="donut-center">@CenterText</text>
+    </svg>
+    <ul class="legend">
+        @foreach (var s in Slices)
+        {
+            <li><span class="dot" style="background:@s.Color"></span>@s.Label <span class="muted">@(total == 0 ? 0 : Math.Round(s.Value / total * 100, 0))%</span></li>
+        }
+    </ul>
+</div>
+
+@code {
+    public record Slice(string Label, decimal Value, string Color);
+
+    [Parameter, EditorRequired] public IReadOnlyList<Slice> Slices { get; set; } = [];
+    [Parameter] public string CenterText { get; set; } = "";
+    [Parameter] public string Label { get; set; } = "สัดส่วน";
+}

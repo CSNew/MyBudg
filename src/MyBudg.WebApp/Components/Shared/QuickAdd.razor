@@ -1,0 +1,147 @@
+@using System.Globalization
+@implements IDisposable
+@inject ITransactionService Transactions
+@inject ICategoryService Categories
+@inject AppState State
+
+@if (open)
+{
+    <div class="sheet-backdrop" @onclick="Close"></div>
+    <div class="sheet" role="dialog" aria-modal="true" aria-label="@(editId is null ? "บันทึกรายการ" : "แก้ไขรายการ")">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <h2>@(editId is null ? "บันทึกรายการ" : "แก้ไขรายการ")</h2>
+            <button class="btn btn-ghost btn-icon" aria-label="ปิด" @onclick="Close">✕</button>
+        </div>
+
+        <div class="segmented" role="tablist">
+            <button role="tab" class="@(type == TransactionType.Expense ? "active expense" : "")" @onclick="() => SetType(TransactionType.Expense)">รายจ่าย</button>
+            <button role="tab" class="@(type == TransactionType.Income ? "active income" : "")" @onclick="() => SetType(TransactionType.Income)">รายรับ</button>
+        </div>
+
+        <div class="amount-box">
+            <span class="amount-prefix">฿</span>
+            <input class="amount-input" type="text" inputmode="decimal" placeholder="0" autocomplete="off"
+                   aria-label="จำนวนเงิน" @bind="amountText" @bind:event="oninput" />
+        </div>
+
+        <div class="field-label">เลือกหมวดหมู่</div>
+        <div class="cat-grid">
+            @foreach (var c in categories.Where(c => c.Kind == type))
+            {
+                <button class="cat @(categoryId == c.Id ? "selected" : "")" style="--cat:@c.Color" @onclick="() => categoryId = c.Id">
+                    <span class="cat-icon">@c.Icon</span>
+                    <span class="cat-name">@c.Name</span>
+                </button>
+            }
+        </div>
+
+        <div class="row-2">
+            <label class="field">
+                <span>วันที่</span>
+                <input class="input" type="date" @bind="date" @bind:format="yyyy-MM-dd" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+            </label>
+            <label class="field">
+                <span>โน้ต <small class="muted">(ไม่บังคับ)</small></span>
+                <input class="input" type="text" maxlength="@Limits.MaxNoteLength" placeholder="เช่น ข้าวมันไก่" @bind="note" />
+            </label>
+        </div>
+
+        @if (error is not null)
+        {
+            <div class="alert alert-danger" role="alert">@error</div>
+        }
+
+        <button class="btn btn-primary btn-block btn-lg" disabled="@saving" @onclick="Save">
+            @(editId is null ? "บันทึก" : "บันทึกการแก้ไข")
+        </button>
+    </div>
+}
+
+@code {
+    private bool open, saving;
+    private int? editId;
+    private TransactionType type = TransactionType.Expense;
+    private string amountText = "";
+    private int categoryId;
+    private DateTime date = DateTime.Today;
+    private string note = "";
+    private string? error;
+    private IReadOnlyList<Category> categories = [];
+
+    protected override void OnInitialized() => State.QuickAddRequested += OnRequested;
+    public void Dispose() => State.QuickAddRequested -= OnRequested;
+
+    private void OnRequested(int? id) => _ = InvokeAsync(async () =>
+    {
+        await OpenAsync(id);
+        StateHasChanged();
+    });
+
+    private async Task OpenAsync(int? id)
+    {
+        error = null;
+        editId = id;
+        categories = await Categories.ListAsync();
+        type = TransactionType.Expense;
+        amountText = "";
+        categoryId = 0;
+        date = DateTime.Today;
+        note = "";
+
+        if (id is not null && await Transactions.GetAsync(id.Value) is { } item)
+        {
+            var t = item.Transaction;
+            type = t.Type;
+            amountText = t.Amount.ToString("0.##", CultureInfo.InvariantCulture);
+            categoryId = t.CategoryId;
+            date = t.Date;
+            note = t.Note;
+            // หมวดที่ซ่อนอยู่ แต่รายการเดิมใช้ — ยังต้องแสดงให้เลือกได้
+            if (categories.All(c => c.Id != t.CategoryId))
+                categories = await Categories.ListAsync(includeHidden: true);
+        }
+        open = true;
+    }
+
+    private void SetType(TransactionType t)
+    {
+        if (type == t) return;
+        type = t;
+        categoryId = 0;
+    }
+
+    private void Close() => open = false;
+
+    private async Task Save()
+    {
+        error = null;
+        var cleaned = amountText.Replace(",", "").Trim();
+        if (!decimal.TryParse(cleaned, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var amount))
+        {
+            error = "กรุณาใส่จำนวนเงินเป็นตัวเลข";
+            return;
+        }
+        if (categoryId == 0)
+        {
+            error = "กรุณาเลือกหมวดหมู่";
+            return;
+        }
+
+        saving = true;
+        var input = new TransactionInput(type, amount, categoryId, date, note);
+        var result = editId is null
+            ? await Transactions.AddAsync(input)
+            : await Transactions.UpdateAsync(editId.Value, input);
+        saving = false;
+
+        if (!result.Succeeded)
+        {
+            error = result.Error;
+            return;
+        }
+
+        open = false;
+        State.NotifyChanged();
+    }
+}

@@ -1,0 +1,53 @@
+@if (Items.Count == 0)
+{
+    <p class="muted">ยังไม่มีรายการ</p>
+}
+else
+{
+    <ul class="tx-list">
+        @foreach (var i in Items)
+        {
+            var t = i.Transaction;
+            <li class="tx">
+                <span class="tx-icon" style="background:color-mix(in srgb, @i.CategoryColor 22%, transparent)">@i.CategoryIcon</span>
+                <div class="tx-main">
+                    <strong>@(string.IsNullOrWhiteSpace(t.Note) ? i.CategoryName : t.Note)</strong>
+                    <small class="muted">@i.CategoryName · @t.Date.ToString("d MMM yyyy", Formatting.Thai)</small>
+                </div>
+                <div class="tx-amount @(t.Type == TransactionType.Income ? "income" : "expense")">
+                    @(t.Type == TransactionType.Income ? "+" : "−")@t.Amount.Baht()
+                </div>
+                @if (ShowActions)
+                {
+                    <div class="tx-actions">
+                        @if (confirmDeleteId == t.Id)
+                        {
+                            <button class="btn btn-danger btn-sm" @onclick="() => Delete(t.Id)">ลบเลย</button>
+                            <button class="btn btn-ghost btn-sm" @onclick="() => confirmDeleteId = null">ยกเลิก</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-ghost btn-sm" aria-label="แก้ไข" @onclick="() => OnEdit.InvokeAsync(t.Id)">✏️</button>
+                            <button class="btn btn-ghost btn-sm" aria-label="ลบ" @onclick="() => confirmDeleteId = t.Id">🗑️</button>
+                        }
+                    </div>
+                }
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private int? confirmDeleteId;
+
+    [Parameter, EditorRequired] public IReadOnlyList<TransactionItem> Items { get; set; } = [];
+    [Parameter] public bool ShowActions { get; set; }
+    [Parameter] public EventCallback<int> OnEdit { get; set; }
+    [Parameter] public EventCallback<int> OnDelete { get; set; }
+
+    private async Task Delete(int id)
+    {
+        confirmDeleteId = null;
+        await OnDelete.InvokeAsync(id);
+    }
+}

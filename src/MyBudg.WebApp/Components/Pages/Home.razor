@@ -1,0 +1,101 @@
+@page "/"
+@attribute [Authorize]
+@implements IDisposable
+@inject IDashboardService Dashboard
+@inject ITransactionService Transactions
+@inject IOnboardingService OnboardingSvc
+@inject NavigationManager Nav
+@inject AppState State
+
+<PageTitle>หน้าแรก - MyBudg</PageTitle>
+
+@if (summary is null)
+{
+    <p class="muted center">กำลังโหลด...</p>
+}
+else
+{
+    <MonthNav Month="month" MonthChanged="ChangeMonth" />
+
+    <section class="hero card">
+        <div class="hero-label">เหลือใช้ได้เดือนนี้</div>
+        <div class="hero-amount @(summary.Remaining < 0 ? "neg" : "")">@summary.Remaining.Baht()</div>
+        <p class="hero-msg">@summary.Message</p>
+        <div class="stat-row">
+            <div class="stat"><span class="dot" style="background:var(--income)"></span><div><small>รายรับ</small><strong>@summary.Income.Baht()</strong></div></div>
+            <div class="stat"><span class="dot" style="background:var(--expense)"></span><div><small>รายจ่าย</small><strong>@summary.Expense.Baht()</strong></div></div>
+        </div>
+    </section>
+
+    @if (summary.Income == 0 && summary.Expense == 0 && recent.Count == 0)
+    {
+        <div class="card empty">
+            <div class="empty-icon">✍️</div>
+            <h2>เริ่มบันทึกรายการแรกกันเลย</h2>
+            <p class="muted">กดปุ่ม <strong>＋</strong> ด้านล่าง ใส่จำนวนเงิน แล้วเลือกหมวด ก็เสร็จแล้ว</p>
+            <button class="btn btn-primary" @onclick="() => State.OpenQuickAdd()">บันทึกรายการ</button>
+        </div>
+    }
+    else
+    {
+        <section class="card">
+            <h2>รายจ่ายแยกตามหมวด</h2>
+            @if (summary.ExpenseByCategory.Count == 0)
+            {
+                <p class="muted">ยังไม่มีรายจ่ายในเดือนนี้</p>
+            }
+            else
+            {
+                <DonutChart Slices="slices" CenterText="@summary.Expense.BahtShort()" Label="รายจ่ายแยกตามหมวด" />
+            }
+        </section>
+
+        <section class="card">
+            <h2>6 เดือนที่ผ่านมา</h2>
+            <BarChart Months="summary.LastMonths" />
+        </section>
+
+        <section class="card">
+            <div class="card-head">
+                <h2>รายการล่าสุด</h2>
+                <a href="transactions">ดูทั้งหมด</a>
+            </div>
+            <TransactionList Items="recent" ShowActions="false" />
+        </section>
+    }
+}
+
+@code {
+    private MonthRange month = MonthRange.Current;
+    private MonthSummary? summary;
+    private IReadOnlyList<TransactionItem> recent = [];
+    private IReadOnlyList<DonutChart.Slice> slices = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.DataChanged += OnChanged;
+        if (!await OnboardingSvc.IsDoneAsync())
+        {
+            Nav.NavigateTo("onboarding");
+            return;
+        }
+        await LoadAsync();
+    }
+
+    private void OnChanged() => _ = InvokeAsync(async () => { await LoadAsync(); StateHasChanged(); });
+
+    private async Task ChangeMonth(MonthRange m)
+    {
+        month = m;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        summary = await Dashboard.GetMonthAsync(month);
+        recent = await Transactions.GetRecentAsync(5);
+        slices = summary.ExpenseByCategory.Select(c => new DonutChart.Slice($"{c.Category.Icon} {c.Category.Name}", c.Amount, c.Category.Color)).ToList();
+    }
+
+    public void Dispose() => State.DataChanged -= OnChanged;
+}

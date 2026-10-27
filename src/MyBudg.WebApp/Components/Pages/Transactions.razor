@@ -1,0 +1,96 @@
+@page "/transactions"
+@attribute [Authorize]
+@implements IDisposable
+@inject ITransactionService TxService
+@inject ICategoryService Categories
+@inject IExportService Export
+@inject IJSRuntime JS
+@inject AppState State
+
+<PageTitle>รายการ - MyBudg</PageTitle>
+
+<h1>รายการทั้งหมด</h1>
+<MonthNav Month="month" MonthChanged="ChangeMonth" />
+
+<div class="toolbar">
+    <select class="input" aria-label="กรองตามหมวด" @bind="categoryId" @bind:after="LoadAsync">
+        <option value="0">ทุกหมวด</option>
+        @foreach (var c in categories)
+        {
+            <option value="@c.Id">@c.Icon @c.Name</option>
+        }
+    </select>
+    <button class="btn btn-ghost" @onclick="DownloadCsv">⬇️ ส่งออก CSV</button>
+</div>
+
+@if (message is not null)
+{
+    <div class="alert alert-danger" role="alert">@message</div>
+}
+
+<section class="card">
+    <div class="stat-row">
+        <div class="stat"><span class="dot" style="background:var(--income)"></span><div><small>รายรับ</small><strong>@income.Baht()</strong></div></div>
+        <div class="stat"><span class="dot" style="background:var(--expense)"></span><div><small>รายจ่าย</small><strong>@expense.Baht()</strong></div></div>
+    </div>
+</section>
+
+<section class="card">
+    @if (items.Count == 0)
+    {
+        <div class="empty">
+            <div class="empty-icon">🧾</div>
+            <p class="muted">ไม่มีรายการในเดือนนี้ กดปุ่ม ＋ เพื่อเพิ่มรายการ</p>
+        </div>
+    }
+    else
+    {
+        <TransactionList Items="items" ShowActions="true" OnEdit="id => State.OpenQuickAdd(id)" OnDelete="DeleteAsync" />
+    }
+</section>
+
+@code {
+    private MonthRange month = MonthRange.Current;
+    private int categoryId;
+    private string? message;
+    private IReadOnlyList<Category> categories = [];
+    private IReadOnlyList<TransactionItem> items = [];
+    private decimal income, expense;
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.DataChanged += OnChanged;
+        categories = await Categories.ListAsync(includeHidden: true);
+        await LoadAsync();
+    }
+
+    private void OnChanged() => _ = InvokeAsync(async () => { await LoadAsync(); StateHasChanged(); });
+
+    private async Task ChangeMonth(MonthRange m)
+    {
+        month = m;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        items = await TxService.GetMonthAsync(month, categoryId == 0 ? null : categoryId);
+        income = items.Where(i => i.Transaction.Type == TransactionType.Income).Sum(i => i.Transaction.Amount);
+        expense = items.Where(i => i.Transaction.Type == TransactionType.Expense).Sum(i => i.Transaction.Amount);
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        var result = await TxService.DeleteAsync(id);
+        message = result.Error;
+        State.NotifyChanged();
+    }
+
+    private async Task DownloadCsv()
+    {
+        var bytes = await Export.ExportMonthCsvAsync(month);
+        await JS.InvokeVoidAsync("mybudg.downloadFile", $"mybudg-{month.Year}-{month.Month:00}.csv", "text/csv", Convert.ToBase64String(bytes));
+    }
+
+    public void Dispose() => State.DataChanged -= OnChanged;
+}

@@ -1,0 +1,26 @@
+@using System.Globalization
+@{
+    var max = Math.Max(1m, Months.Max(m => Math.Max(m.Income, m.Expense)));
+    var barW = 6.0; var groupW = 100.0 / Months.Count;
+    string F(double d) => d.ToString("0.##", CultureInfo.InvariantCulture);
+}
+<svg viewBox="0 0 100 50" class="bars" role="img" aria-label="รายรับและรายจ่ายย้อนหลัง">
+    @for (var i = 0; i < Months.Count; i++)
+    {
+        var m = Months[i];
+        var x = i * groupW + groupW / 2;
+        var hi = (double)(m.Income / max) * 36;
+        var he = (double)(m.Expense / max) * 36;
+        <rect x="@F(x - barW - 0.5)" y="@F(40 - hi)" width="@F(barW)" height="@F(hi)" rx="1" fill="var(--income)"></rect>
+        <rect x="@F(x + 0.5)" y="@F(40 - he)" width="@F(barW)" height="@F(he)" rx="1" fill="var(--expense)"></rect>
+        @((MarkupString)$"<text x=\"{F(x)}\" y=\"47\" text-anchor=\"middle\" class=\"bar-label\">{new DateTime(m.Year, m.Month, 1).ToString("MMM", Formatting.Thai)}</text>")
+    }
+</svg>
+<div class="legend legend-inline">
+    <span><span class="dot" style="background:var(--income)"></span>รายรับ</span>
+    <span><span class="dot" style="background:var(--expense)"></span>รายจ่าย</span>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<MonthTotal> Months { get; set; } = [];
+}

@@ -1,0 +1,159 @@
+@page "/investments"
+@attribute [Authorize]
+@using System.Globalization
+@inject IInvestmentService Service
+
+<PageTitle>ลงทุน - MyBudg</PageTitle>
+
+<h1>การลงทุน</h1>
+
+@if (overview is null)
+{
+    <p class="muted center">กำลังโหลด...</p>
+}
+else
+{
+    @if (message is not null)
+    {
+        <div class="alert alert-danger" role="alert">@message</div>
+    }
+
+    <section class="hero card">
+        <div class="hero-label">กำไร/ขาดทุนรวม</div>
+        <div class="hero-amount @(overview.Profit < 0 ? "neg" : "pos")">@Signed(overview.Profit) <small>(@Signed(overview.ProfitPercent, "N2")%)</small></div>
+        <div class="stat-row">
+            <div class="stat"><div><small title="เงินที่ใส่ลงไปทั้งหมด">ต้นทุน</small><strong>@overview.TotalCost.Baht()</strong></div></div>
+            <div class="stat"><div><small title="ถ้าขายวันนี้จะได้เงินเท่าไหร่">มูลค่าปัจจุบัน</small><strong>@overview.TotalValue.Baht()</strong></div></div>
+        </div>
+        <p class="muted small"><strong>ต้นทุน</strong> = เงินที่เราใส่ลงไป · <strong>มูลค่าปัจจุบัน</strong> = ถ้าขายวันนี้จะได้เท่าไหร่</p>
+    </section>
+
+    @if (overview.Items.Count > 0)
+    {
+        <section class="card">
+            <h2>สัดส่วนพอร์ต</h2>
+            <DonutChart Slices="slices" CenterText="@overview.TotalValue.BahtShort()" Label="สัดส่วนพอร์ต" />
+        </section>
+    }
+
+    <section class="card">
+        <h2>รายการลงทุน</h2>
+        @if (overview.Items.Count == 0)
+        {
+            <div class="empty"><div class="empty-icon">📈</div><p class="muted">ยังไม่มีการลงทุน เพิ่มรายการแรกด้านล่างได้เลย</p></div>
+        }
+        @foreach (var i in overview.Items)
+        {
+            <div class="inv">
+                <div class="budget-head">
+                    <strong>@Icon(i.Type) @i.Name <small class="muted">· @TypeName(i.Type)</small></strong>
+                    <span class="@(i.Profit < 0 ? "neg" : "pos")">@Signed(i.ProfitPercent, "N2")%</span>
+                </div>
+                <div class="budget-head">
+                    <small class="muted">ต้นทุน @i.Cost.BahtShort() → ตอนนี้ @i.CurrentValue.BahtShort()</small>
+                    <small class="@(i.Profit < 0 ? "neg" : "pos")">@Signed(i.Profit)</small>
+                </div>
+                <div class="inline-form">
+                    <input class="input input-sm" type="text" inputmode="decimal" placeholder="อัปเดตมูลค่าปัจจุบัน" aria-label="มูลค่าปัจจุบัน @i.Name"
+                           @onchange="e => UpdateValue(i.Id, e.Value?.ToString())" />
+                    @if (confirmId == i.Id)
+                    {
+                        <button class="btn btn-danger btn-sm" @onclick="() => Delete(i.Id)">ลบเลย</button>
+                        <button class="btn btn-ghost btn-sm" @onclick="() => confirmId = null">ยกเลิก</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-ghost btn-sm" aria-label="ลบ" @onclick="() => confirmId = i.Id">🗑️</button>
+                    }
+                </div>
+            </div>
+        }
+    </section>
+
+    <section class="card">
+        <h2>เพิ่มการลงทุน</h2>
+        <div class="row-2">
+            <label class="field"><span>ประเภท</span>
+                <select class="input" @bind="type">
+                    @foreach (var t in Enum.GetValues<InvestmentType>())
+                    {
+                        <option value="@t">@Icon(t) @TypeName(t)</option>
+                    }
+                </select>
+            </label>
+            <label class="field"><span>ชื่อ</span><input class="input" maxlength="@Limits.MaxNameLength" placeholder="เช่น กองทุนดัชนี S&amp;P500" @bind="name" /></label>
+            <label class="field"><span>ต้นทุน (บาท)</span><input class="input" inputmode="decimal" @bind="cost" /></label>
+            <label class="field"><span>มูลค่าปัจจุบัน (บาท)</span><input class="input" inputmode="decimal" @bind="value" /></label>
+        </div>
+        <button class="btn btn-primary" @onclick="Add">เพิ่ม</button>
+    </section>
+}
+
+@code {
+    private InvestmentOverview? overview;
+    private IReadOnlyList<DonutChart.Slice> slices = [];
+    private string? message;
+    private int? confirmId;
+    private InvestmentType type = InvestmentType.Fund;
+    private string name = "", cost = "", value = "";
+
+    private static readonly string[] Palette = ["#6366f1", "#22c55e", "#f59e0b", "#ec4899", "#0ea5e9", "#94a3b8"];
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        overview = await Service.GetOverviewAsync();
+        slices = overview.Allocation.Select((a, idx) => new DonutChart.Slice(TypeName(a.Type), a.Value, Palette[idx % Palette.Length])).ToList();
+    }
+
+    private static bool TryAmount(string? text, out decimal v) =>
+        decimal.TryParse((text ?? "").Replace(",", "").Trim(), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out v);
+
+    private async Task Add()
+    {
+        message = null;
+        if (!TryAmount(cost, out var c) || !TryAmount(value, out var v)) { message = "กรุณาใส่ต้นทุนและมูลค่าปัจจุบันเป็นตัวเลข"; return; }
+        var r = await Service.AddAsync(new InvestmentInput(type, name, c, v, DateTime.Today));
+        message = r.Error;
+        if (r.Succeeded) { name = cost = value = ""; }
+        await LoadAsync();
+    }
+
+    private async Task UpdateValue(int id, string? text)
+    {
+        message = null;
+        if (!TryAmount(text, out var v)) { message = "กรุณาใส่มูลค่าเป็นตัวเลข"; return; }
+        message = (await Service.UpdateValueAsync(id, v)).Error;
+        await LoadAsync();
+    }
+
+    private async Task Delete(int id)
+    {
+        confirmId = null;
+        await Service.DeleteAsync(id);
+        await LoadAsync();
+    }
+
+    private static string Signed(decimal v, string fmt = "N2") => (v > 0 ? "+" : "") + v.ToString(fmt, Formatting.Thai);
+
+    private static string TypeName(InvestmentType t) => t switch
+    {
+        InvestmentType.Fund => "กองทุนรวม",
+        InvestmentType.Stock => "หุ้น",
+        InvestmentType.Crypto => "คริปโต",
+        InvestmentType.Gold => "ทองคำ",
+        InvestmentType.Deposit => "เงินฝากประจำ",
+        _ => "อื่นๆ"
+    };
+
+    private static string Icon(InvestmentType t) => t switch
+    {
+        InvestmentType.Fund => "🧺",
+        InvestmentType.Stock => "📊",
+        InvestmentType.Crypto => "🪙",
+        InvestmentType.Gold => "🥇",
+        InvestmentType.Deposit => "🏦",
+        _ => "💼"
+    };
+}
