@@ -1,0 +1,28 @@
+# Render Blueprint สำหรับ "ทดลอง" บนแผนฟรี — ใช้ข้อมูลสมมติเท่านั้น (ดู docs/DEPLOY_TRIAL.md)
+# ค่าลับ (sync: false) ต้องกรอกเองในหน้า Render ห้าม commit ลงไฟล์นี้
+services:
+  - type: web
+    name: mybudg
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: Database__Provider
+        value: Postgres
+      - key: ForwardedHeaders__Enabled
+        value: "true"
+      - key: Registration__Mode
+        value: InviteOnly
+      - key: Registration__InviteCode
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: Encryption__CurrentKeyId
+        value: k1
+      - key: Encryption__Keys__k1
+        sync: false

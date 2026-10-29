@@ -1,5 +1,6 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using MyBudg.Business;
 using MyBudg.Common;
@@ -14,11 +15,44 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 
 // ---------- Data / Business (N-tier) ----------
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "App_Data"));
+// Database:Provider = Sqlite (ค่าเริ่มต้น เหมาะกับเครื่อง dev) หรือ Postgres (บนคลาวด์)
+var provider = builder.Configuration.GetValue("Database:Provider", DatabaseProvider.Sqlite);
+string connectionString;
+if (provider == DatabaseProvider.Postgres)
+{
+    // รองรับทั้ง ConnectionStrings:Postgres และ DATABASE_URL (รูปแบบที่ Render/Neon/Supabase ให้มา)
+    connectionString = builder.Configuration.GetConnectionString("Postgres")
+        ?? builder.Configuration["DATABASE_URL"]
+        ?? throw new InvalidOperationException("ใช้ Postgres แต่ยังไม่ได้ตั้ง ConnectionStrings__Postgres หรือ DATABASE_URL");
+}
+else
+{
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+    Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "App_Data"));
+}
 
-builder.Services.AddMyBudgData(connectionString, EncryptionKeySetup.Load(builder.Configuration, builder.Environment));
+// PaaS ส่งพอร์ตมาทาง PORT
+if (Environment.GetEnvironmentVariable("PORT") is { Length: > 0 } port)
+    builder.WebHost.UseUrls($"http://+:{port}");
+
+builder.Services.AddMyBudgData(connectionString, EncryptionKeySetup.Load(builder.Configuration, builder.Environment), provider);
+builder.Services.Configure<RegistrationOptions>(builder.Configuration.GetSection("Registration"));
+
+// เปิดเมื่ออยู่หลัง reverse proxy/load balancer ที่เป็นทางเข้าเดียวของแอปเท่านั้น
+// (ถ้าแอปเข้าถึงได้ตรงๆ ผู้โจมตีจะปลอม X-Forwarded-For เพื่อหลบ rate limit ได้)
+var behindProxy = builder.Configuration.GetValue<bool>("ForwardedHeaders:Enabled");
+if (behindProxy)
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(o =>
+    {
+        o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        o.ForwardLimit = 1; // เชื่อเฉพาะค่าที่ proxy ตัวเดียวหน้าแอปเติมให้ (ค่าขวาสุด) ที่ client ปลอมไม่ได้
+        o.KnownIPNetworks.Clear();
+        o.KnownProxies.Clear();
+    });
+}
+
 builder.Services.AddMyBudgBusiness();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<AppState>();
@@ -76,6 +110,12 @@ builder.Services.AddAuthorization();
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.OnRejected = async (context, ct) =>
+    {
+        context.HttpContext.Response.Headers.RetryAfter = "60";
+        context.HttpContext.Response.ContentType = "text/plain; charset=utf-8";
+        await context.HttpContext.Response.WriteAsync("ลองบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่", ct);
+    };
     o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
     {
         var isAuthPost = HttpMethods.IsPost(ctx.Request.Method)
@@ -90,7 +130,11 @@ builder.Services.AddRateLimiter(o =>
 
 var app = builder.Build();
 
-await app.Services.InitializeMyBudgDatabaseAsync();
+if (behindProxy) app.UseForwardedHeaders();
+
+// หลายอินสแตนซ์: ตั้ง Database:MigrateOnStartup=false แล้วรัน migration จาก pipeline แทน
+if (builder.Configuration.GetValue("Database:MigrateOnStartup", true))
+    await app.Services.InitializeMyBudgDatabaseAsync();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -113,9 +157,12 @@ app.Use(async (ctx, next) =>
     await next();
 });
 
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+// rate limiter ต้องอยู่นอกสุดเหนือ status-code-pages ไม่งั้น 429 ของ POST จะถูก re-execute
+// ไปที่ /not-found (ยังเป็น POST) แล้วกลายเป็น 400
 app.UseRateLimiter();
+app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+// หลัง proxy ที่ทำ TLS termination ให้ proxy เป็นผู้ redirect (และ health check จะเป็น http ภายใน)
+if (!behindProxy) app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
@@ -123,6 +170,11 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 app.MapAdditionalIdentityEndpoints();
+
+// ตรวจสุขภาพ: ไม่เปิดเผยรายละเอียดใดๆ
+app.MapGet("/healthz", async (IServiceProvider sp, CancellationToken ct) =>
+    await sp.CanReachDatabaseAsync(ct) ? Results.Text("ok") : Results.StatusCode(StatusCodes.Status503ServiceUnavailable))
+    .AllowAnonymous();
 
 app.Run();
 

@@ -1,15 +1,23 @@
 @page "/Account/Register"
 @using System.ComponentModel.DataAnnotations
+@using Microsoft.Extensions.Options
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Register> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject IOptions<RegistrationOptions> Registration
 
 <PageTitle>สมัครใช้งาน</PageTitle>
 
 <h1>สมัครใช้งาน</h1>
 
+@if (!RegistrationPolicy.IsAvailable(Registration.Value))
+{
+    <div class="alert alert-danger" role="alert">ขณะนี้ยังไม่เปิดรับสมัครสมาชิกใหม่</div>
+}
+else
+{
 <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
     <DataAnnotationsValidator />
     @if (identityErrors is not null)
@@ -20,6 +28,13 @@
     }
     <ValidationSummary class="text-danger" role="alert" />
 
+    @if (RegistrationPolicy.RequiresCode(Registration.Value))
+    {
+        <label class="field">
+            <span>รหัสเชิญ</span>
+            <InputText @bind-Value="Input.InviteCode" class="input" autocomplete="off" />
+        </label>
+    }
     <label class="field">
         <span>อีเมล</span>
         <InputText @bind-Value="Input.Email" class="input" autocomplete="username" aria-required="true" />
@@ -37,6 +52,7 @@
     </label>
     <button type="submit" class="btn btn-primary btn-block">สมัครใช้งาน</button>
 </EditForm>
+}
 
 <p class="center muted">มีบัญชีแล้ว? <a href="Account/Login">เข้าสู่ระบบ</a></p>
 
@@ -50,6 +66,14 @@
 
     public async Task RegisterUser(EditContext editContext)
     {
+        // ตรวจฝั่งเซิร์ฟเวอร์เสมอ (ไม่พึ่งการซ่อนฟอร์ม)
+        var gate = RegistrationPolicy.Check(Registration.Value, Input.InviteCode);
+        if (!gate.Succeeded)
+        {
+            identityErrors = [new IdentityError { Code = "Registration", Description = gate.Error! }];
+            return;
+        }
+
         var user = new ApplicationUser { UserName = Input.Email, Email = Input.Email };
         var result = await UserManager.CreateAsync(user, Input.Password);
         if (!result.Succeeded)
@@ -79,6 +103,8 @@
         [Required(ErrorMessage = "กรุณากรอกอีเมล")]
         [EmailAddress(ErrorMessage = "รูปแบบอีเมลไม่ถูกต้อง")]
         public string Email { get; set; } = "";
+
+        public string? InviteCode { get; set; }
 
         [Required(ErrorMessage = "กรุณากรอกรหัสผ่าน")]
         [StringLength(100, MinimumLength = 12, ErrorMessage = "รหัสผ่านต้องยาว 12-100 ตัวอักษร")]
