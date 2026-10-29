@@ -45,6 +45,29 @@ public class PostgresConnectionStringTests
     public void Empty_Throws(string input) =>
         Assert.Throws<InvalidOperationException>(() => PostgresConnectionString.Normalize(input));
 
+    [Theory]
+    [InlineData("db")]
+    [InlineData("mybudg-db")]
+    [InlineData("localhost")]
+    [InlineData("127.0.0.1")]
+    public void InsecureTransport_AllowedOnlyWhenOptedInAndHostIsInternal(string host)
+    {
+        var raw = $"Host={host};Database=d;Username=u;Password=p;SSL Mode=Disable";
+
+        Assert.Equal(SslMode.Disable, new NpgsqlConnectionStringBuilder(PostgresConnectionString.Normalize(raw, allowInsecureTransport: true)).SslMode);
+        // ไม่เปิดสวิตช์ = ยังบังคับ SSL
+        Assert.Equal(SslMode.Require, new NpgsqlConnectionStringBuilder(PostgresConnectionString.Normalize(raw)).SslMode);
+    }
+
+    [Theory]
+    [InlineData("db.example.com")]
+    [InlineData("ep-cool-123.neon.tech")]
+    [InlineData("10.0.0.5")]
+    [InlineData("203.0.113.9")]
+    public void InsecureTransport_NeverAllowedForPublicHostsEvenWhenOptedIn(string host) =>
+        Assert.Equal(SslMode.Require,
+            new NpgsqlConnectionStringBuilder(PostgresConnectionString.Normalize($"Host={host};Database=d;Username=u;Password=p;SSL Mode=Disable", true)).SslMode);
+
     [Fact]
     public void Describe_DoesNotLeakCredentials()
     {

@@ -36,7 +36,9 @@ else
 if (Environment.GetEnvironmentVariable("PORT") is { Length: > 0 } port)
     builder.WebHost.UseUrls($"http://+:{port}");
 
-builder.Services.AddMyBudgData(connectionString, EncryptionKeySetup.Load(builder.Configuration, builder.Environment), provider);
+// ใช้เฉพาะ docker compose/เครื่องทดลอง: ยอมต่อ Postgres แบบไม่ใช้ SSL ได้เมื่อโฮสต์เป็น localhost หรือชื่อ service ภายใน
+var allowInsecureDb = builder.Configuration.GetValue<bool>("Database:AllowInsecureTransport");
+builder.Services.AddMyBudgData(connectionString, EncryptionKeySetup.Load(builder.Configuration, builder.Environment), provider, allowInsecureDb);
 builder.Services.Configure<RegistrationOptions>(builder.Configuration.GetSection("Registration"));
 
 // เปิดเมื่ออยู่หลัง reverse proxy/load balancer ที่เป็นทางเข้าเดียวของแอปเท่านั้น
@@ -129,6 +131,9 @@ builder.Services.AddRateLimiter(o =>
 });
 
 var app = builder.Build();
+
+if (allowInsecureDb && provider == DatabaseProvider.Postgres)
+    app.Logger.LogWarning("Database:AllowInsecureTransport เปิดอยู่ — อนุญาตต่อ Postgres แบบไม่เข้ารหัสได้เฉพาะโฮสต์ภายใน ห้ามใช้กับระบบจริง");
 
 if (behindProxy) app.UseForwardedHeaders();
 

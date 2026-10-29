@@ -18,7 +18,8 @@ public static class DependencyInjection
         this IServiceCollection services,
         string connectionString,
         EncryptionOptions encryption,
-        DatabaseProvider provider = DatabaseProvider.Sqlite)
+        DatabaseProvider provider = DatabaseProvider.Sqlite,
+        bool allowInsecureDatabaseTransport = false)
     {
         services.AddSingleton(encryption);
         services.AddSingleton<IDataEncryptor, AesGcmDataEncryptor>();
@@ -27,7 +28,7 @@ public static class DependencyInjection
         {
             // DateTime ของเราเป็น "วันที่" ไม่มีเขตเวลา → ใช้ timestamp without time zone
             AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-            var normalized = PostgresConnectionString.Normalize(connectionString);
+            var normalized = PostgresConnectionString.Normalize(connectionString, allowInsecureDatabaseTransport);
             services.AddDbContextFactory<MyBudgDbContext>(o =>
                 o.UseNpgsql(normalized, b => b.MigrationsAssembly(PostgresMigrationsAssembly)));
         }
